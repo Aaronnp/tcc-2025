@@ -1,13 +1,37 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import CharacterCreation from "@/components/CharacterCreation";
+import GameArea from "@/components/GameArea";
+
+interface Character {
+  nome: string;
+  foto: string;
+  forca: number;
+  destreza: number;
+  constituicao: number;
+  inteligencia: number;
+  carisma: number;
+  vida: number;
+  armadura: number;
+  arma: string;
+}
 
 const Index = () => {
+  const [character, setCharacter] = useState<Character | null>(null);
+  const [gameStarted, setGameStarted] = useState(false);
+
+  const handleStartGame = (char: Character) => {
+    setCharacter(char);
+    setGameStarted(true);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <>
+      {!gameStarted ? (
+        <CharacterCreation onStartGame={handleStartGame} />
+      ) : character ? (
+        <GameArea character={character} />
+      ) : null}
+    </>
   );
 };
 
