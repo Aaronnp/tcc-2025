@@ -9,10 +9,13 @@ interface Character {
   destreza: number;
   constituicao: number;
   inteligencia: number;
-  carisma: number;
+  poderDeFogo: number;
   vida: number;
   armadura: number;
   arma: string;
+  level: number;
+  xp: number;
+  pointsToSpend: number;
 }
 
 const Index = () => {
@@ -24,12 +27,24 @@ const Index = () => {
     setGameStarted(true);
   };
 
+  const handleCharacterUpdate = (updatedChar: Character) => {
+    setCharacter(updatedChar);
+  };
+
+  const handleReturnToSheet = () => {
+    setGameStarted(false);
+  };
+
   return (
     <>
       {!gameStarted ? (
-        <CharacterCreation onStartGame={handleStartGame} />
+        <CharacterCreation onStartGame={handleStartGame} existingCharacter={character || undefined} />
       ) : character ? (
-        <GameArea character={character} />
+        <GameArea 
+          character={character} 
+          onCharacterUpdate={handleCharacterUpdate}
+          onReturnToSheet={handleReturnToSheet}
+        />
       ) : null}
     </>
   );
