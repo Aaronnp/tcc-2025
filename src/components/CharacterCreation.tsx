@@ -50,7 +50,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
   const totalNewPoints = Object.values(newPoints).reduce((a, b) => a + b, 0);
   const pointsToSpend = existingCharacter?.pointsToSpend || 0;
   const totalPoints = Object.values(stats).reduce((a, b) => a + b, 0);
-  const maxPoints = isLevelUp ? pointsToSpend : 8;
+  const maxPoints = isLevelUp ? pointsToSpend : 15;
 
   const handleStatChange = (stat: keyof typeof stats, value: number) => {
     if (isLevelUp) {
@@ -128,8 +128,8 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
           {isLevelUp ? `Distribua ${pointsToSpend} pontos` : "Crie seu comedor de fast food"}
         </p>
         {!isLevelUp && (
-          <p className="text-center mb-6 text-xs">
-            Você tem {maxPoints} pontos para distribuir em 5 atributos
+        <p className="text-center mb-6 text-xs">
+            Você tem 15 pontos para distribuir em 5 atributos
           </p>
         )}
 

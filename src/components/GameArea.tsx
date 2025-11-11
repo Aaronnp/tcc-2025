@@ -34,7 +34,8 @@ interface Enemy {
 interface Props {
   character: Character;
   onCharacterUpdate: (character: Character) => void;
-  onReturnToSheet: () => void;
+  onReturnToSheet: (currentRoom: number) => void;
+  initialRoom?: number;
 }
 
 interface Item {
@@ -73,9 +74,9 @@ const bosses: Enemy[] = [
   { nome: 'Aeternus, o Deus das Sombras', foto: 'analnir.png', forca: 30, des: 30, cons: 100, pdf: 20, int: 30, vida: 750, magia: 2000 },
 ];
 
-export default function GameArea({ character: initialCharacter, onCharacterUpdate, onReturnToSheet }: Props) {
+export default function GameArea({ character: initialCharacter, onCharacterUpdate, onReturnToSheet, initialRoom = 0 }: Props) {
   const [character, setCharacter] = useState(initialCharacter);
-  const [currentRoom, setCurrentRoom] = useState(0);
+  const [currentRoom, setCurrentRoom] = useState(initialRoom);
   const [maxRooms] = useState(100);
   const [rooms, setRooms] = useState<Array<{ enemy: Enemy | null; cleared: boolean; isBoss: boolean; chest: Item | null }>>([]);
   const [currentEnemy, setCurrentEnemy] = useState<Enemy | null>(null);
@@ -120,16 +121,10 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   };
 
   const generateRandomItem = (): Item => {
-    const itemTypes = ['arma', 'armadura', 'pocao'] as const;
+    const itemTypes = ['arma', 'armadura'] as const;
     const tipo = itemTypes[Math.floor(Math.random() * itemTypes.length)];
     
-    if (tipo === 'pocao') {
-      return {
-        nome: 'Poção de Vida',
-        tipo: 'pocao',
-        cura: 20 + Math.floor(Math.random() * 30),
-      };
-    } else if (tipo === 'arma') {
+    if (tipo === 'arma') {
       return {
         nome: `Arma Mágica +${Math.floor(Math.random() * 5) + 1}`,
         tipo: 'arma',
@@ -170,8 +165,13 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         setBattleLog([`⚔️ Um ${room.enemy.nome} apareceu!`]);
       }
     } else if (room.chest) {
-      setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou um baú! 📦`]);
-      setInventory(prev => [...prev, room.chest!]);
+      const potion: Item = {
+        nome: 'Poção de Vida',
+        tipo: 'pocao',
+        cura: 20 + Math.floor(Math.random() * 30),
+      };
+      setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou um baú com ${room.chest!.nome} e uma Poção de Vida! 📦`]);
+      setInventory(prev => [...prev, room.chest!, potion]);
       setCurrentRoom(nextRoom);
     } else {
       setBattleLog([`✅ Sala ${nextRoom + 1} está vazia e segura.`]);
@@ -195,16 +195,35 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
     const stats = getTotalStats();
     const playerDamage = Math.max(1, stats.forca + stats.poderDeFogo + Math.floor(Math.random() * 6));
-    const enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
+    
+    // Sistema de esquiva: se o jogador tiver mais destreza, 50% chance de desviar
+    let enemyDamage = 0;
+    let dodged = false;
+    
+    if (character.destreza > currentEnemy.des) {
+      dodged = Math.random() < 0.5;
+    }
+    
+    if (!dodged) {
+      enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
+    }
 
     const newEnemyHp = currentEnemy.vida - playerDamage;
     const newPlayerHp = character.vida - enemyDamage;
 
-    setBattleLog(prev => [
-      ...prev,
-      `⚔️ Você causou ${playerDamage} de dano!`,
-      `💥 Inimigo causou ${enemyDamage} de dano!`,
-    ]);
+    if (dodged) {
+      setBattleLog(prev => [
+        ...prev,
+        `⚔️ Você causou ${playerDamage} de dano!`,
+        `💨 Você desviou do ataque do inimigo!`,
+      ]);
+    } else {
+      setBattleLog(prev => [
+        ...prev,
+        `⚔️ Você causou ${playerDamage} de dano!`,
+        `💥 Inimigo causou ${enemyDamage} de dano!`,
+      ]);
+    }
 
     if (newEnemyHp <= 0) {
       const xpGained = 100;
@@ -328,7 +347,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
           </div>
           {character.pointsToSpend > 0 && (
             <Button 
-              onClick={onReturnToSheet}
+              onClick={() => onReturnToSheet(currentRoom)}
               className="mt-4 w-full bg-accent hover:bg-accent/90 text-accent-foreground"
             >
               Voltar à Ficha (Gastar Pontos)

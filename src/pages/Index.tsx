@@ -21,6 +21,7 @@ interface Character {
 const Index = () => {
   const [character, setCharacter] = useState<Character | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
+  const [savedRoom, setSavedRoom] = useState(0);
 
   const handleStartGame = (char: Character) => {
     setCharacter(char);
@@ -31,7 +32,8 @@ const Index = () => {
     setCharacter(updatedChar);
   };
 
-  const handleReturnToSheet = () => {
+  const handleReturnToSheet = (currentRoom: number) => {
+    setSavedRoom(currentRoom);
     setGameStarted(false);
   };
 
@@ -44,6 +46,7 @@ const Index = () => {
           character={character} 
           onCharacterUpdate={handleCharacterUpdate}
           onReturnToSheet={handleReturnToSheet}
+          initialRoom={savedRoom}
         />
       ) : null}
     </>
