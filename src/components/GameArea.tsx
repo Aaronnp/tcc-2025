@@ -2,10 +2,17 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import heroSword from "@/assets/hero-sword.png";
+import heroBow from "@/assets/hero-bow.png";
+import heroStaff from "@/assets/hero-staff.png";
+import heroAxe from "@/assets/hero-axe.png";
+import bossAeternus from "@/assets/boss-aeternus.png";
+import bossInfernus from "@/assets/boss-infernus.png";
+import bossShadow from "@/assets/boss-shadow.png";
+import bossArkanus from "@/assets/boss-arkanus.png";
 
 interface Character {
   nome: string;
-  foto: string;
   forca: number;
   destreza: number;
   constituicao: number;
@@ -68,10 +75,10 @@ const enemies: Enemy[] = [
 ];
 
 const bosses: Enemy[] = [
-  { nome: 'Arkanus, O Guerreiro Perdido', foto: 'analnir.png', forca: 8, des: 2, cons: 20, pdf: 3, int: 5, vida: 100, magia: 300 },
-  { nome: 'A Sombra Primordial', foto: 'analnir.png', forca: 6, des: 9999, cons: 0, pdf: 0, int: 10, vida: 1, magia: 500 },
-  { nome: 'Infernus Veylor, O Assasino de Vultos', foto: 'analnir.png', forca: 3, des: 10, cons: 43, pdf: 15, int: 15, vida: 215, magia: 350 },
-  { nome: 'Aeternus, o Deus das Sombras', foto: 'analnir.png', forca: 30, des: 30, cons: 100, pdf: 20, int: 30, vida: 750, magia: 2000 },
+  { nome: 'Arkanus, O Guerreiro Perdido', foto: bossArkanus, forca: 8, des: 2, cons: 20, pdf: 3, int: 5, vida: 100, magia: 300 },
+  { nome: 'A Sombra Primordial', foto: bossShadow, forca: 6, des: 9999, cons: 0, pdf: 0, int: 10, vida: 1, magia: 500 },
+  { nome: 'Infernus Veylor, O Assasino de Vultos', foto: bossInfernus, forca: 3, des: 10, cons: 43, pdf: 15, int: 15, vida: 215, magia: 350 },
+  { nome: 'Aeternus, o Deus das Sombras', foto: bossAeternus, forca: 30, des: 30, cons: 100, pdf: 20, int: 30, vida: 750, magia: 2000 },
 ];
 
 export default function GameArea({ character: initialCharacter, onCharacterUpdate, onReturnToSheet, initialRoom = 0 }: Props) {
@@ -91,6 +98,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const [equippedWeapon, setEquippedWeapon] = useState<Item | null>(null);
   const [equippedArmor, setEquippedArmor] = useState<Item | null>(null);
   const [story, setStory] = useState("Bem-vindo à Dungeon das Sombras. Sua jornada começa aqui...");
+  const [attackAnimation, setAttackAnimation] = useState(false);
 
   useEffect(() => {
     generateRooms();
@@ -175,7 +183,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         tipo: 'pocao',
         cura: 20 + Math.floor(Math.random() * 30),
       };
-      setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou um baú com ${room.chest!.nome} e uma Poção de Vida! 📦`]);
+      setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou um baú com ${room.chest.nome} e uma Poção de Vida! 📦`]);
       setInventory(prev => [...prev, room.chest!, potion]);
       setCurrentRoom(nextRoom);
     } else {
@@ -198,8 +206,17 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const attack = () => {
     if (!currentEnemy || !inBattle) return;
 
+    // Animação de ataque
+    setAttackAnimation(true);
+    setTimeout(() => setAttackAnimation(false), 300);
+
     const stats = getTotalStats();
-    const playerDamage = Math.max(1, stats.forca + stats.poderDeFogo + Math.floor(Math.random() * 6));
+    
+    // Se usar arco, usa poder de fogo ao invés de força
+    const attackStat = character.arma === 'Arco' ? stats.poderDeFogo : stats.forca;
+    
+    // Inteligência adiciona ao dado
+    const playerDamage = Math.max(1, attackStat + stats.poderDeFogo + character.inteligencia + Math.floor(Math.random() * 6));
     
     // Sistema de esquiva: se o jogador tiver mais destreza, 50% chance de desviar
     let enemyDamage = 0;
@@ -280,6 +297,8 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       setBattleLog(prev => [...prev, `🏃 Você fugiu com sucesso!`]);
       setCurrentEnemy(null);
       setInBattle(false);
+      // Avança uma porta ao fugir
+      setCurrentRoom(currentRoom + 1);
     } else {
       const stats = getTotalStats();
       const enemyDamage = Math.max(1, (currentEnemy?.forca || 0) + Math.floor(Math.random() * 4));
@@ -323,6 +342,30 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   };
 
   const stats = getTotalStats();
+  
+  // Determina a pixel art do herói baseado na arma
+  const getHeroSprite = () => {
+    switch(character.arma) {
+      case 'Espada': return heroSword;
+      case 'Arco': return heroBow;
+      case 'Cajado': case 'Fé': return heroStaff;
+      case 'Machado': return heroAxe;
+      default: return heroSword;
+    }
+  };
+
+  // Sistema de janela deslizante: mostra apenas 5 portas
+  const getVisibleRooms = () => {
+    const startRoom = Math.max(0, currentRoom - 4);
+    const endRoom = Math.min(maxRooms, startRoom + 5);
+    return rooms.slice(startRoom, endRoom).map((room, index) => ({
+      ...room,
+      actualIndex: startRoom + index
+    }));
+  };
+
+  const visibleRooms = getVisibleRooms();
+  const isBossBattle = rooms[currentRoom + 1]?.isBoss;
 
   return (
     <div className="min-h-screen dungeon-bg overflow-x-auto">
@@ -412,15 +455,15 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
           </Button>
         </div>
 
-        {/* Rooms Display */}
+        {/* Rooms Display - Sistema de janela deslizante */}
         <div className="flex gap-4 mb-8">
-          {rooms.map((room, index) => (
+          {visibleRooms.map((room, index) => (
             <div
-              key={index}
+              key={room.actualIndex}
               className={`parchment-bg p-6 rounded-sm border-4 w-48 h-48 flex flex-col items-center justify-center transition-all ${
-                index === currentRoom 
+                room.actualIndex === currentRoom 
                   ? 'border-accent scale-110 shadow-lg' 
-                  : index < currentRoom 
+                  : room.actualIndex < currentRoom 
                     ? 'border-muted opacity-50' 
                     : room.isBoss
                       ? 'border-destructive'
@@ -428,15 +471,15 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
               }`}
             >
               <div className="text-4xl mb-2">
-                {index < currentRoom ? '✅' : index === currentRoom ? '🚪' : room.isBoss ? '👑' : room.chest ? '📦' : '❓'}
+                {room.actualIndex < currentRoom ? '✅' : room.actualIndex === currentRoom ? '🚪' : room.isBoss ? '👑' : room.chest ? '📦' : '❓'}
               </div>
-              <div className="text-center font-bold">Sala {index + 1}</div>
-              {room.enemy && !room.cleared && index >= currentRoom && (
+              <div className="text-center font-bold">Sala {room.actualIndex + 1}</div>
+              {room.enemy && !room.cleared && room.actualIndex >= currentRoom && (
                 <div className={`text-xs mt-2 ${room.isBoss ? 'text-destructive font-bold' : 'text-destructive'}`}>
                   {room.isBoss ? '⚠️ BOSS' : '⚠️ Perigo'}
                 </div>
               )}
-              {room.chest && index >= currentRoom && (
+              {room.chest && room.actualIndex >= currentRoom && (
                 <div className="text-xs mt-2 text-accent">🎁 Baú</div>
               )}
             </div>
@@ -445,37 +488,105 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
         {/* Battle or Navigation - Sempre visível */}
         {character.vida > 0 && (
-          <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[400px]">
-            <h3 className="text-xl font-bold mb-4">🎮 Controles</h3>
-            {inBattle && currentEnemy ? (
-              <div>
-                <h4 className="text-lg font-bold mb-2">⚔️ Batalha: {currentEnemy.nome}</h4>
-                <div className="mb-4 text-sm">
-                  <div>Vida do Inimigo: {currentEnemy.vida}</div>
-                  <div>Força: {currentEnemy.forca} | Destreza: {currentEnemy.des} | Magia: {currentEnemy.magia}</div>
+          <>
+            {inBattle && currentEnemy && isBossBattle ? (
+              /* Tela de Batalha Estilo Undertale para Bosses */
+              <div className="w-full max-w-4xl mx-auto">
+                <div className="bg-black border-8 border-white p-8 rounded-sm min-h-[600px] flex flex-col">
+                  {/* Boss Sprite */}
+                  <div className="flex justify-center mb-8">
+                    <img 
+                      src={currentEnemy.foto} 
+                      alt={currentEnemy.nome}
+                      className={`w-64 h-64 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
+                      style={{ imageRendering: 'pixelated' }}
+                    />
+                  </div>
+                  
+                  {/* Boss Info */}
+                  <div className="text-white text-center mb-8">
+                    <h2 className="text-3xl font-bold mb-2" style={{ fontFamily: 'monospace' }}>
+                      {currentEnemy.nome}
+                    </h2>
+                    <div className="flex justify-center gap-4 text-lg">
+                      <span>HP: {currentEnemy.vida}</span>
+                      <span>ATK: {currentEnemy.forca}</span>
+                      <span>DEF: {currentEnemy.cons}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Battle Box - Undertale Style */}
+                  <div className="border-8 border-white bg-black p-8 flex justify-around items-center mt-auto">
+                    <button
+                      onClick={attack}
+                      className="border-4 border-orange-500 bg-black text-orange-500 px-12 py-6 text-2xl font-bold hover:bg-orange-500 hover:text-black transition-all"
+                      style={{ fontFamily: 'monospace' }}
+                    >
+                      ⚔️ FIGHT
+                    </button>
+                    <button
+                      onClick={flee}
+                      className="border-4 border-yellow-400 bg-black text-yellow-400 px-12 py-6 text-2xl font-bold hover:bg-yellow-400 hover:text-black transition-all"
+                      style={{ fontFamily: 'monospace' }}
+                    >
+                      ❤️ MERCY
+                    </button>
+                  </div>
                 </div>
-                <div className="space-x-4">
-                  <Button onClick={attack} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-                    Atacar
-                  </Button>
-                  <Button onClick={flee} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
-                    Fugir
-                  </Button>
+              </div>
+            ) : inBattle && currentEnemy ? (
+              /* Batalha Normal */
+              <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[400px]">
+                <h3 className="text-xl font-bold mb-4">🎮 Controles</h3>
+                <div className="flex justify-center mb-4">
+                  <img 
+                    src={getHeroSprite()} 
+                    alt={character.nome}
+                    className={`w-24 h-24 object-contain pixelated ${attackAnimation ? 'animate-pulse' : ''}`}
+                    style={{ imageRendering: 'pixelated' }}
+                  />
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold mb-2">⚔️ Batalha: {currentEnemy.nome}</h4>
+                  <div className="mb-4 text-sm">
+                    <div>Vida do Inimigo: {currentEnemy.vida}</div>
+                    <div>Força: {currentEnemy.forca} | Destreza: {currentEnemy.des} | Magia: {currentEnemy.magia}</div>
+                  </div>
+                  <div className="space-x-4">
+                    <Button onClick={attack} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                      Atacar
+                    </Button>
+                    <Button onClick={flee} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
+                      Fugir
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div>
-                <p className="text-sm mb-4">Sala atual: {currentRoom + 1}/{maxRooms}</p>
-                <Button 
-                  onClick={advanceRoom}
-                  disabled={currentRoom >= maxRooms - 1}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg px-8 py-4 w-full"
-                >
-                  Avançar Sala ➡️
-                </Button>
+              /* Navegação */
+              <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[400px]">
+                <h3 className="text-xl font-bold mb-4">🎮 Controles</h3>
+                <div className="flex justify-center mb-4">
+                  <img 
+                    src={getHeroSprite()} 
+                    alt={character.nome}
+                    className="w-24 h-24 object-contain pixelated"
+                    style={{ imageRendering: 'pixelated' }}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm mb-4">Sala atual: {currentRoom + 1}/{maxRooms}</p>
+                  <Button 
+                    onClick={advanceRoom}
+                    disabled={currentRoom >= maxRooms - 1}
+                    className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg px-8 py-4 w-full"
+                  >
+                    Avançar Sala ➡️
+                  </Button>
+                </div>
               </div>
             )}
-          </div>
+          </>
         )}
 
         {/* Battle Log */}

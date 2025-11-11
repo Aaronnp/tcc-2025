@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface Character {
   nome: string;
-  foto: string;
   forca: number;
   destreza: number;
   constituicao: number;
@@ -28,7 +27,6 @@ interface Props {
 export default function CharacterCreation({ onStartGame, existingCharacter }: Props) {
   const isLevelUp = !!existingCharacter;
   const [nome, setNome] = useState(existingCharacter?.nome || "");
-  const [foto, setFoto] = useState(existingCharacter?.foto || "");
   const [arma, setArma] = useState(existingCharacter?.arma || "Espada");
   
   const [stats, setStats] = useState({
@@ -104,7 +102,6 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
 
       const character: Character = {
         nome,
-        foto: foto || "https://via.placeholder.com/100",
         ...stats,
         vida: 10 + stats.constituicao * 2,
         armadura: stats.constituicao + 10,
@@ -135,29 +132,16 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
 
         <div className="space-y-4">
           {!isLevelUp && (
-            <>
-              <div>
-                <Label htmlFor="nome" className="text-sm font-bold">Nome:</Label>
-                <Input
-                  id="nome"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  placeholder="Seu nome legal"
-                  className="mt-1 bg-input border-2 border-border"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="foto" className="text-sm font-bold">Imagem do seu americano:</Label>
-                <Input
-                  id="foto"
-                  value={foto}
-                  onChange={(e) => setFoto(e.target.value)}
-                  placeholder="Coloque o link"
-                  className="mt-1 bg-input border-2 border-border"
-                />
-              </div>
-            </>
+            <div>
+              <Label htmlFor="nome" className="text-sm font-bold">Nome:</Label>
+              <Input
+                id="nome"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Seu nome legal"
+                className="mt-1 bg-input border-2 border-border"
+              />
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">

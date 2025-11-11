@@ -4,7 +4,6 @@ import GameArea from "@/components/GameArea";
 
 interface Character {
   nome: string;
-  foto: string;
   forca: number;
   destreza: number;
   constituicao: number;
