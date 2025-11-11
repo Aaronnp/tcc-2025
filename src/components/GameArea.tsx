@@ -77,6 +77,11 @@ const bosses: Enemy[] = [
 export default function GameArea({ character: initialCharacter, onCharacterUpdate, onReturnToSheet, initialRoom = 0 }: Props) {
   const [character, setCharacter] = useState(initialCharacter);
   const [currentRoom, setCurrentRoom] = useState(initialRoom);
+  
+  // Atualiza a sala atual quando initialRoom mudar (retornando do level up)
+  useEffect(() => {
+    setCurrentRoom(initialRoom);
+  }, [initialRoom]);
   const [maxRooms] = useState(100);
   const [rooms, setRooms] = useState<Array<{ enemy: Enemy | null; cleared: boolean; isBoss: boolean; chest: Item | null }>>([]);
   const [currentEnemy, setCurrentEnemy] = useState<Enemy | null>(null);
@@ -438,12 +443,13 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
           ))}
         </div>
 
-        {/* Battle or Navigation */}
+        {/* Battle or Navigation - Sempre visível */}
         {character.vida > 0 && (
-          <div className="parchment-bg p-6 rounded-sm border-4 border-primary inline-block">
+          <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[400px]">
+            <h3 className="text-xl font-bold mb-4">🎮 Controles</h3>
             {inBattle && currentEnemy ? (
               <div>
-                <h3 className="text-xl font-bold mb-4">⚔️ Batalha: {currentEnemy.nome}</h3>
+                <h4 className="text-lg font-bold mb-2">⚔️ Batalha: {currentEnemy.nome}</h4>
                 <div className="mb-4 text-sm">
                   <div>Vida do Inimigo: {currentEnemy.vida}</div>
                   <div>Força: {currentEnemy.forca} | Destreza: {currentEnemy.des} | Magia: {currentEnemy.magia}</div>
@@ -458,23 +464,26 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                 </div>
               </div>
             ) : (
-              <Button 
-                onClick={advanceRoom}
-                disabled={currentRoom >= maxRooms - 1}
-                className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg px-8 py-4"
-              >
-                Avançar Sala ➡️
-              </Button>
+              <div>
+                <p className="text-sm mb-4">Sala atual: {currentRoom + 1}/{maxRooms}</p>
+                <Button 
+                  onClick={advanceRoom}
+                  disabled={currentRoom >= maxRooms - 1}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg px-8 py-4 w-full"
+                >
+                  Avançar Sala ➡️
+                </Button>
+              </div>
             )}
           </div>
         )}
 
         {/* Battle Log */}
         {battleLog.length > 0 && (
-          <div className="parchment-bg p-6 rounded-sm border-4 border-primary mt-8 inline-block max-w-2xl">
+          <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block max-w-2xl ml-4 align-top">
             <h3 className="text-lg font-bold mb-4">📜 Log de Eventos</h3>
             <div className="text-sm space-y-1 max-h-48 overflow-y-auto">
-              {battleLog.map((log, index) => (
+              {battleLog.slice(-15).map((log, index) => (
                 <div key={index}>{log}</div>
               ))}
             </div>
