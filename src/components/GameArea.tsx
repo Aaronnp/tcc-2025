@@ -10,6 +10,8 @@ import bossAeternus from "@/assets/boss-aeternus.png";
 import bossInfernus from "@/assets/boss-infernus.png";
 import bossShadow from "@/assets/boss-shadow.png";
 import bossArkanus from "@/assets/boss-arkanus.png";
+import enemyUraume from "@/assets/enemy-uraume.png";
+import bossBackground from "@/assets/boss-background.png";
 
 interface Character {
   nome: string;
@@ -69,13 +71,13 @@ const enemies: Enemy[] = [
   { nome: 'Guarda Sombrio', foto: 'analnir.png', forca: 5, des: 1, cons: 6, pdf: 5, int: 0, vida: 30, magia: 50 },
   { nome: 'Goblin', foto: 'analnir.png', forca: 2, des: 2, cons: 2, pdf: 2, int: 0, vida: 10, magia: 100 },
   { nome: 'Supreme Adalnir', foto: 'analnir.png', forca: 12, des: 6, cons: 8, pdf: 4, int: 0, vida: 50, magia: 100 },
-  { nome: 'Uraume', foto: 'analnir.png', forca: 6, des: 2, cons: 2, pdf: 0, int: 0, vida: 10, magia: 25 },
+  { nome: 'Uraume', foto: enemyUraume, forca: 6, des: 2, cons: 2, pdf: 0, int: 0, vida: 10, magia: 25 },
   { nome: 'Sombra', foto: 'analnir.png', forca: 1, des: 6, cons: 1, pdf: 0, int: 0, vida: 5, magia: 45 },
   { nome: 'Atenas', foto: 'analnir.png', forca: 1, des: 2, cons: 5, pdf: 6, int: 0, vida: 25, magia: 50 },
 ];
 
 const bosses: Enemy[] = [
-  { nome: 'Arkanus, O Guerreiro Perdido', foto: bossArkanus, forca: 8, des: 2, cons: 20, pdf: 3, int: 5, vida: 100, magia: 300 },
+  { nome: 'Arkanus, O Guerreiro Perdido', foto: bossArkanus, forca: 8, des: 2, cons: 20, pdf: 3, int: 5, vida: 75, magia: 300 },
   { nome: 'A Sombra Primordial', foto: bossShadow, forca: 6, des: 9999, cons: 0, pdf: 0, int: 10, vida: 1, magia: 500 },
   { nome: 'Infernus Veylor, O Assasino de Vultos', foto: bossInfernus, forca: 3, des: 10, cons: 43, pdf: 15, int: 15, vida: 215, magia: 350 },
   { nome: 'Aeternus, o Deus das Sombras', foto: bossAeternus, forca: 30, des: 30, cons: 100, pdf: 20, int: 30, vida: 750, magia: 2000 },
@@ -90,6 +92,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     setCurrentRoom(initialRoom);
   }, [initialRoom]);
   const [maxRooms] = useState(100);
+  
+  // Calcula o checkpoint mais próximo (múltiplo de 10)
+  const getLastCheckpoint = (room: number) => Math.floor(room / 10) * 10;
   const [rooms, setRooms] = useState<Array<{ enemy: Enemy | null; cleared: boolean; isBoss: boolean; chest: Item | null }>>([]);
   const [currentEnemy, setCurrentEnemy] = useState<Enemy | null>(null);
   const [battleLog, setBattleLog] = useState<string[]>([]);
@@ -395,10 +400,18 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
           </div>
           {character.pointsToSpend > 0 && (
             <Button 
-              onClick={() => onReturnToSheet(currentRoom)}
+              onClick={() => {
+                const checkpoint = getLastCheckpoint(currentRoom);
+                onReturnToSheet(checkpoint);
+              }}
               className="mt-4 w-full bg-accent hover:bg-accent/90 text-accent-foreground"
             >
               Voltar à Ficha (Gastar Pontos)
+              {currentRoom > 0 && (
+                <span className="text-xs ml-2">
+                  (Voltar {currentRoom - getLastCheckpoint(currentRoom)} {currentRoom - getLastCheckpoint(currentRoom) === 1 ? 'sala' : 'salas'})
+                </span>
+              )}
             </Button>
           )}
         </div>
@@ -491,29 +504,37 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
           <>
             {inBattle && currentEnemy && isBossBattle ? (
               /* Tela de Batalha Estilo Undertale para Bosses */
-              <div className="w-full max-w-4xl mx-auto">
-                <div className="bg-black border-8 border-white p-8 rounded-sm min-h-[600px] flex flex-col">
-                  {/* Boss Sprite */}
-                  <div className="flex justify-center mb-8">
-                    <img 
-                      src={currentEnemy.foto} 
-                      alt={currentEnemy.nome}
-                      className={`w-96 h-96 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
-                      style={{ imageRendering: 'pixelated' }}
-                    />
-                  </div>
-                  
-                  {/* Boss Info */}
-                  <div className="text-white text-center mb-8">
-                    <h2 className="text-3xl font-bold mb-2" style={{ fontFamily: 'monospace' }}>
-                      {currentEnemy.nome}
-                    </h2>
-                    <div className="flex justify-center gap-4 text-lg">
-                      <span>HP: {currentEnemy.vida}</span>
-                      <span>ATK: {currentEnemy.forca}</span>
-                      <span>DEF: {currentEnemy.cons}</span>
+              <div 
+                className="fixed inset-0 flex items-center justify-center z-50"
+                style={{
+                  backgroundImage: `url(${bossBackground})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center'
+                }}
+              >
+                <div className="w-full max-w-4xl mx-auto">
+                  <div className="bg-black/80 border-8 border-white p-8 rounded-sm min-h-[600px] flex flex-col">
+                    {/* Boss Sprite */}
+                    <div className="flex justify-center mb-8">
+                      <img 
+                        src={currentEnemy.foto} 
+                        alt={currentEnemy.nome}
+                        className={`w-96 h-96 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
+                        style={{ imageRendering: 'pixelated' }}
+                      />
                     </div>
-                  </div>
+                    
+                    {/* Boss Info */}
+                    <div className="text-white text-center mb-8">
+                      <h2 className="text-3xl font-bold mb-2" style={{ fontFamily: 'monospace' }}>
+                        {currentEnemy.nome}
+                      </h2>
+                      <div className="flex justify-center gap-4 text-lg">
+                        <span>HP: {currentEnemy.vida}</span>
+                        <span>ATK: {currentEnemy.forca}</span>
+                        <span>DEF: {currentEnemy.cons}</span>
+                      </div>
+                    </div>
                   
                   {/* Battle Box - Undertale Style */}
                   <div className="border-8 border-white bg-black p-8 flex justify-around items-center mt-auto">
@@ -534,15 +555,16 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                   </div>
                 </div>
               </div>
+            </div>
             ) : inBattle && currentEnemy ? (
               /* Batalha Normal */
               <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[400px]">
                 <h3 className="text-xl font-bold mb-4">🎮 Controles</h3>
-                <div className="flex justify-center mb-4">
+                <div className="flex items-center gap-4">
                   <img 
                     src={getHeroSprite()} 
                     alt={character.nome}
-                    className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-pulse' : ''}`}
+                    className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
                     style={{ imageRendering: 'pixelated' }}
                   />
                 </div>
