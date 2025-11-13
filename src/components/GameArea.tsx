@@ -354,9 +354,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     }
   };
 
-  // Sistema de janela deslizante: mostra apenas 5 portas
+  // Sistema de janela deslizante: mostra portas em intervalos de 5 (1-5, 6-10, 11-15, etc.)
   const getVisibleRooms = () => {
-    const startRoom = Math.max(0, currentRoom - 4);
+    const startRoom = Math.floor(currentRoom / 5) * 5;
     const endRoom = Math.min(maxRooms, startRoom + 5);
     return rooms.slice(startRoom, endRoom).map((room, index) => ({
       ...room,
@@ -498,7 +498,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                     <img 
                       src={currentEnemy.foto} 
                       alt={currentEnemy.nome}
-                      className={`w-64 h-64 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
+                      className={`w-96 h-96 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
                       style={{ imageRendering: 'pixelated' }}
                     />
                   </div>
@@ -542,7 +542,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                   <img 
                     src={getHeroSprite()} 
                     alt={character.nome}
-                    className={`w-24 h-24 object-contain pixelated ${attackAnimation ? 'animate-pulse' : ''}`}
+                    className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-pulse' : ''}`}
                     style={{ imageRendering: 'pixelated' }}
                   />
                 </div>
@@ -570,7 +570,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                   <img 
                     src={getHeroSprite()} 
                     alt={character.nome}
-                    className="w-24 h-24 object-contain pixelated"
+                    className="w-48 h-48 object-contain pixelated"
                     style={{ imageRendering: 'pixelated' }}
                   />
                 </div>
