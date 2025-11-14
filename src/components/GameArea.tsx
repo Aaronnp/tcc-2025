@@ -635,6 +635,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                       </div>
                     </div>
                   )}
+                  </div>
                 </div>
               </div>
             ) : inBattle && currentEnemy ? (
