@@ -83,7 +83,26 @@ All colors MUST be HSL.
     75% { transform: translateX(10px); }
   }
   
+  @keyframes fade-out {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-50px);
+    }
+  }
+  
   .animate-shake {
     animation: shake 0.3s ease-in-out;
+  }
+  
+  .animate-fade-out {
+    animation: fade-out 1s ease-out forwards;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
   }
 }

@@ -11,6 +11,14 @@ import bossInfernus from "@/assets/boss-infernus.png";
 import bossShadow from "@/assets/boss-shadow.png";
 import bossArkanus from "@/assets/boss-arkanus.png";
 import enemyUraume from "@/assets/enemy-uraume.png";
+import enemySkeleton from "@/assets/enemy-skeleton.png";
+import enemyGoblin from "@/assets/enemy-goblin.png";
+import enemyShadow from "@/assets/enemy-shadow.png";
+import enemyBandit from "@/assets/enemy-bandit.png";
+import enemyFly from "@/assets/enemy-fly.png";
+import enemyGuard from "@/assets/enemy-guard.png";
+import enemySoul from "@/assets/enemy-soul.png";
+import slashEffect from "@/assets/slash-effect.png";
 import bossBackground from "@/assets/boss-background.png";
 
 interface Character {
@@ -62,18 +70,18 @@ interface Item {
 }
 
 const enemies: Enemy[] = [
-  { nome: 'Adalnir', foto: 'analnir.png', forca: 6, des: 3, cons: 4, pdf: 2, int: 0, vida: 20, magia: 1 },
-  { nome: 'Alma Perdida', foto: 'analnir.png', forca: 2, des: 1, cons: 1, pdf: 0, int: 0, vida: 5, magia: 10 },
-  { nome: 'Esqueleto Armado (e com vida)', foto: 'analnir.png', forca: 0, des: 2, cons: 2, pdf: 5, int: 0, vida: 10, magia: 10 },
-  { nome: 'Esqueleto 💀', foto: 'analnir.png', forca: 0, des: 0, cons: 0, pdf: 0, int: 0, vida: 1, magia: 1 },
-  { nome: 'Bandido Perdido', foto: 'analnir.png', forca: 5, des: 2, cons: 4, pdf: 0, int: 0, vida: 20, magia: 20 },
-  { nome: 'Mosca Titânica', foto: 'analnir.png', forca: 8, des: 5, cons: 7, pdf: 0, int: 0, vida: 35, magia: 100 },
-  { nome: 'Guarda Sombrio', foto: 'analnir.png', forca: 5, des: 1, cons: 6, pdf: 5, int: 0, vida: 30, magia: 50 },
-  { nome: 'Goblin', foto: 'analnir.png', forca: 2, des: 2, cons: 2, pdf: 2, int: 0, vida: 10, magia: 100 },
-  { nome: 'Supreme Adalnir', foto: 'analnir.png', forca: 12, des: 6, cons: 8, pdf: 4, int: 0, vida: 50, magia: 100 },
+  { nome: 'Adalnir', foto: enemySkeleton, forca: 6, des: 3, cons: 4, pdf: 2, int: 0, vida: 20, magia: 1 },
+  { nome: 'Alma Perdida', foto: enemySoul, forca: 2, des: 1, cons: 1, pdf: 0, int: 0, vida: 5, magia: 10 },
+  { nome: 'Esqueleto Armado (e com vida)', foto: enemySkeleton, forca: 0, des: 2, cons: 2, pdf: 5, int: 0, vida: 10, magia: 10 },
+  { nome: 'Esqueleto 💀', foto: enemySkeleton, forca: 0, des: 0, cons: 0, pdf: 0, int: 0, vida: 1, magia: 1 },
+  { nome: 'Bandido Perdido', foto: enemyBandit, forca: 5, des: 2, cons: 4, pdf: 0, int: 0, vida: 20, magia: 20 },
+  { nome: 'Mosca Titânica', foto: enemyFly, forca: 8, des: 5, cons: 7, pdf: 0, int: 0, vida: 35, magia: 100 },
+  { nome: 'Guarda Sombrio', foto: enemyGuard, forca: 5, des: 1, cons: 6, pdf: 5, int: 0, vida: 30, magia: 50 },
+  { nome: 'Goblin', foto: enemyGoblin, forca: 2, des: 2, cons: 2, pdf: 2, int: 0, vida: 10, magia: 100 },
+  { nome: 'Supreme Adalnir', foto: enemySkeleton, forca: 12, des: 6, cons: 8, pdf: 4, int: 0, vida: 50, magia: 100 },
   { nome: 'Uraume', foto: enemyUraume, forca: 6, des: 2, cons: 2, pdf: 0, int: 0, vida: 10, magia: 25 },
-  { nome: 'Sombra', foto: 'analnir.png', forca: 1, des: 6, cons: 1, pdf: 0, int: 0, vida: 5, magia: 45 },
-  { nome: 'Atenas', foto: 'analnir.png', forca: 1, des: 2, cons: 5, pdf: 6, int: 0, vida: 25, magia: 50 },
+  { nome: 'Sombra', foto: enemyShadow, forca: 1, des: 6, cons: 1, pdf: 0, int: 0, vida: 5, magia: 45 },
+  { nome: 'Atenas', foto: enemySkeleton, forca: 1, des: 2, cons: 5, pdf: 6, int: 0, vida: 25, magia: 50 },
 ];
 
 const bosses: Enemy[] = [
@@ -94,6 +102,13 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const [maxRooms] = useState(100);
   
   // Calcula o checkpoint mais próximo (múltiplo de 10)
+  const [damageAnimation, setDamageAnimation] = useState<{show: boolean, damage: number, x: number, y: number}>({
+    show: false,
+    damage: 0,
+    x: 0,
+    y: 0
+  });
+  const [showInventoryInBattle, setShowInventoryInBattle] = useState(false);
   const getLastCheckpoint = (room: number) => Math.floor(room / 10) * 10;
   const [rooms, setRooms] = useState<Array<{ enemy: Enemy | null; cleared: boolean; isBoss: boolean; chest: Item | null }>>([]);
   const [currentEnemy, setCurrentEnemy] = useState<Enemy | null>(null);
@@ -163,6 +178,23 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     }
   };
 
+  const playDoorSound = () => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 200;
+    oscillator.type = 'square';
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  };
+
   const advanceRoom = () => {
     if (currentRoom >= maxRooms - 1) {
       setBattleLog(prev => [...prev, "🎉 Você completou todas as salas!"]);
@@ -170,6 +202,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       return;
     }
 
+    playDoorSound();
     const nextRoom = currentRoom + 1;
     const room = rooms[nextRoom];
 
@@ -353,7 +386,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     switch(character.arma) {
       case 'Espada': return heroSword;
       case 'Arco': return heroBow;
-      case 'Cajado': case 'Fé': return heroStaff;
+      case 'Cajado': return heroStaff;
       case 'Machado': return heroAxe;
       default: return heroSword;
     }
@@ -512,24 +545,45 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                   backgroundPosition: 'center'
                 }}
               >
-                <div className="w-full max-w-4xl mx-auto">
+                <div className="w-full max-w-4xl mx-auto relative">
                   <div className="bg-black/80 border-8 border-white p-8 rounded-sm min-h-[600px] flex flex-col">
                     {/* Boss Sprite */}
-                    <div className="flex justify-center mb-8">
+                    <div className="flex justify-center mb-8 relative">
                       <img 
                         src={currentEnemy.foto} 
                         alt={currentEnemy.nome}
                         className={`w-96 h-96 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
                         style={{ imageRendering: 'pixelated' }}
                       />
+                      {damageAnimation.show && (
+                        <div 
+                          className="absolute text-red-500 font-bold text-6xl animate-fade-out pointer-events-none"
+                          style={{ 
+                            left: `${damageAnimation.x}px`, 
+                            top: `${damageAnimation.y}px`,
+                            fontFamily: 'monospace',
+                            textShadow: '2px 2px 4px black'
+                          }}
+                        >
+                          -{damageAnimation.damage}
+                        </div>
+                      )}
+                      {attackAnimation && (
+                        <img 
+                          src={slashEffect}
+                          alt="slash"
+                          className="absolute w-64 h-64 object-contain animate-fade-in pointer-events-none"
+                          style={{ imageRendering: 'pixelated', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
+                        />
+                      )}
                     </div>
                     
                     {/* Boss Info */}
-                    <div className="text-white text-center mb-8">
-                      <h2 className="text-3xl font-bold mb-2" style={{ fontFamily: 'monospace' }}>
+                    <div className="text-white text-center mb-8 drop-shadow-lg">
+                      <h2 className="text-3xl font-bold mb-2 drop-shadow-lg" style={{ fontFamily: 'monospace' }}>
                         {currentEnemy.nome}
                       </h2>
-                      <div className="flex justify-center gap-4 text-lg">
+                      <div className="flex justify-center gap-4 text-lg drop-shadow-lg">
                         <span>HP: {currentEnemy.vida}</span>
                         <span>ATK: {currentEnemy.forca}</span>
                         <span>DEF: {currentEnemy.cons}</span>
@@ -546,34 +600,102 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                       ⚔️ FIGHT
                     </button>
                     <button
-                      onClick={flee}
-                      className="border-4 border-yellow-400 bg-black text-yellow-400 px-12 py-6 text-2xl font-bold hover:bg-yellow-400 hover:text-black transition-all"
+                      onClick={() => setShowInventoryInBattle(!showInventoryInBattle)}
+                      className="border-4 border-blue-500 bg-black text-blue-500 px-12 py-6 text-2xl font-bold hover:bg-blue-500 hover:text-black transition-all"
                       style={{ fontFamily: 'monospace' }}
                     >
-                      ❤️ MERCY
+                      🎒 ITEM
                     </button>
                   </div>
+                  
+                  {/* Inventory in Battle */}
+                  {showInventoryInBattle && (
+                    <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 bg-black border-8 border-white p-6 max-w-md w-full">
+                      <h3 className="text-white text-xl font-bold mb-4" style={{ fontFamily: 'monospace' }}>ITENS</h3>
+                      <div className="max-h-48 overflow-y-auto space-y-2">
+                        {inventory.filter(item => item.tipo === 'pocao').length === 0 ? (
+                          <p className="text-white" style={{ fontFamily: 'monospace' }}>Sem poções disponíveis</p>
+                        ) : (
+                          inventory.map((item, index) => 
+                            item.tipo === 'pocao' && (
+                              <button
+                                key={index}
+                                onClick={() => {
+                                  usePotion(item, index);
+                                  setShowInventoryInBattle(false);
+                                }}
+                                className="w-full text-left text-white border-2 border-white px-4 py-2 hover:bg-white hover:text-black transition-all"
+                                style={{ fontFamily: 'monospace' }}
+                              >
+                                {item.nome} (+{item.cura} HP)
+                              </button>
+                            )
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
             ) : inBattle && currentEnemy ? (
               /* Batalha Normal */
-              <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[400px]">
-                <h3 className="text-xl font-bold mb-4">🎮 Controles</h3>
-                <div className="flex items-center gap-4">
-                  <img 
-                    src={getHeroSprite()} 
-                    alt={character.nome}
-                    className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
-                    style={{ imageRendering: 'pixelated' }}
-                  />
-                </div>
-                <div>
-                  <h4 className="text-lg font-bold mb-2">⚔️ Batalha: {currentEnemy.nome}</h4>
-                  <div className="mb-4 text-sm">
-                    <div>Vida do Inimigo: {currentEnemy.vida}</div>
-                    <div>Força: {currentEnemy.forca} | Destreza: {currentEnemy.des} | Magia: {currentEnemy.magia}</div>
+              <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[600px]">
+                <h3 className="text-xl font-bold mb-4">⚔️ Batalha: {currentEnemy.nome}</h3>
+                <div className="flex items-center justify-between gap-8 relative">
+                  {/* Herói à esquerda */}
+                  <div className="flex flex-col items-center">
+                    <img 
+                      src={getHeroSprite()} 
+                      alt={character.nome}
+                      className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
+                      style={{ imageRendering: 'pixelated' }}
+                    />
+                    <div className="mt-2 text-center font-bold">
+                      <div>{character.nome}</div>
+                      <div>HP: {character.vida}</div>
+                    </div>
                   </div>
+                  
+                  {/* Animação de dano no centro */}
+                  {damageAnimation.show && (
+                    <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                      <img 
+                        src={slashEffect}
+                        alt="slash"
+                        className="w-32 h-32 object-contain animate-fade-in pointer-events-none"
+                        style={{ imageRendering: 'pixelated' }}
+                      />
+                      <div 
+                        className="absolute text-red-500 font-bold text-4xl animate-fade-out"
+                        style={{ 
+                          left: '50%', 
+                          top: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          fontFamily: 'monospace',
+                          textShadow: '2px 2px 4px black'
+                        }}
+                      >
+                        -{damageAnimation.damage}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Inimigo à direita */}
+                  <div className="flex flex-col items-center">
+                    <img 
+                      src={currentEnemy.foto} 
+                      alt={currentEnemy.nome}
+                      className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
+                      style={{ imageRendering: 'pixelated' }}
+                    />
+                    <div className="mt-2 text-center text-sm">
+                      <div className="font-bold">{currentEnemy.nome}</div>
+                      <div>HP: {currentEnemy.vida}</div>
+                      <div className="text-xs">ATK: {currentEnemy.forca} | DEX: {currentEnemy.des}</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6">
                   <div className="space-x-4">
                     <Button onClick={attack} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                       Atacar

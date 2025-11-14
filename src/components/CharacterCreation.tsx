@@ -119,10 +119,10 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
     <div className="min-h-screen dungeon-bg flex items-center justify-center p-4">
       <div className="parchment-bg p-8 rounded-sm shadow-2xl max-w-2xl w-full border-4 border-primary">
         <h1 className="text-3xl font-bold text-center mb-2 tracking-wider">
-          {isLevelUp ? "LEVEL UP!" : "RPG DA LIVRE VONTADE"}
+          {isLevelUp ? "LEVEL UP!" : "RPG DAS SOMBRAS"}
         </h1>
         <p className="text-center mb-6 text-sm">
-          {isLevelUp ? `Distribua ${pointsToSpend} pontos` : "Crie seu comedor de fast food"}
+          {isLevelUp ? `Distribua ${pointsToSpend} pontos` : "Crie seu lutador"}
         </p>
         {!isLevelUp && (
         <p className="text-center mb-6 text-xs">
@@ -194,7 +194,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
 
           {!isLevelUp && (
             <div>
-              <Label htmlFor="arma" className="text-sm font-bold">Item inicial de todo americano:</Label>
+              <Label htmlFor="arma" className="text-sm font-bold">Item inicial do seu lutador:</Label>
               <Select value={arma} onValueChange={setArma}>
                 <SelectTrigger className="mt-1 bg-input border-2 border-border">
                   <SelectValue />
@@ -203,7 +203,6 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
                   <SelectItem value="Espada">Espada</SelectItem>
                   <SelectItem value="Arco">Arco</SelectItem>
                   <SelectItem value="Cajado">Cajado</SelectItem>
-                  <SelectItem value="Fé">Fé</SelectItem>
                   <SelectItem value="Machado">Machado</SelectItem>
                 </SelectContent>
               </Select>
@@ -214,7 +213,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
             onClick={handleSubmit}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 border-2 border-primary-foreground"
           >
-            {isLevelUp ? "CONFIRMAR PONTOS 🔥" : "CONFIRMAR AMERICANO 🔥"}
+            {isLevelUp ? "CONFIRMAR PONTOS 🔥" : "CONFIRMAR LUTADOR 🔥"}
           </Button>
         </div>
       </div>
