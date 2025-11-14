@@ -20,6 +20,10 @@ import enemyGuard from "@/assets/enemy-guard.png";
 import enemySoul from "@/assets/enemy-soul.png";
 import slashEffect from "@/assets/slash-effect.png";
 import bossBackground from "@/assets/boss-background.png";
+import bossArkanusBackground from "@/assets/boss-arkanus-bg.png";
+import bossShadowBackground from "@/assets/boss-shadow-bg.png";
+import bossInfernusBackground from "@/assets/boss-infernus-bg.png";
+import bossAeternusBackground from "@/assets/boss-aeternus-bg.png";
 
 interface Character {
   nome: string;
@@ -57,7 +61,7 @@ interface Props {
 
 interface Item {
   nome: string;
-  tipo: 'arma' | 'armadura' | 'pocao';
+  tipo: 'arma' | 'armadura' | 'pocao' | 'especial';
   bonus?: {
     forca?: number;
     destreza?: number;
@@ -65,8 +69,10 @@ interface Item {
     inteligencia?: number;
     poderDeFogo?: number;
     armadura?: number;
+    dano?: number;
   };
   cura?: number;
+  especial?: string; // Para itens especiais como "Mantra das Sombras"
 }
 
 const enemies: Enemy[] = [
@@ -90,6 +96,14 @@ const bosses: Enemy[] = [
   { nome: 'Infernus Veylor, O Assasino de Vultos', foto: bossInfernus, forca: 3, des: 10, cons: 43, pdf: 15, int: 15, vida: 215, magia: 350 },
   { nome: 'Aeternus, o Deus das Sombras', foto: bossAeternus, forca: 30, des: 30, cons: 100, pdf: 20, int: 30, vida: 750, magia: 2000 },
 ];
+
+const getBossBackground = (bossName: string) => {
+  if (bossName.includes('Arkanus')) return bossArkanusBackground;
+  if (bossName.includes('Sombra Primordial')) return bossShadowBackground;
+  if (bossName.includes('Infernus')) return bossInfernusBackground;
+  if (bossName.includes('Aeternus')) return bossAeternusBackground;
+  return bossBackground;
+};
 
 export default function GameArea({ character: initialCharacter, onCharacterUpdate, onReturnToSheet, initialRoom = 0 }: Props) {
   const [character, setCharacter] = useState(initialCharacter);
@@ -136,6 +150,46 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
           cleared: false,
           isBoss: true,
           chest: null,
+        };
+      }
+      
+      // Baús especiais em salas específicas
+      if (roomNumber === 45) {
+        return {
+          enemy: null,
+          cleared: false,
+          isBoss: false,
+          chest: {
+            nome: 'Mantra das Sombras',
+            tipo: 'especial' as const,
+            especial: 'mantra_sombras',
+          },
+        };
+      }
+      
+      if (roomNumber === 70) {
+        return {
+          enemy: null,
+          cleared: false,
+          isBoss: false,
+          chest: {
+            nome: 'Armadura das Sombras',
+            tipo: 'armadura' as const,
+            bonus: { armadura: 10 },
+          },
+        };
+      }
+      
+      if (roomNumber === 98) {
+        return {
+          enemy: null,
+          cleared: false,
+          isBoss: false,
+          chest: {
+            nome: 'Armadura de Luz',
+            tipo: 'armadura' as const,
+            bonus: { armadura: 25 },
+          },
         };
       }
       
@@ -250,11 +304,44 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
     const stats = getTotalStats();
     
+    // Verificar se tem Mantra das Sombras para atacar o segundo boss
+    const hasMantraDosSombras = inventory.some(item => item.especial === 'mantra_sombras');
+    
+    // Se for o segundo boss e não tiver a Mantra, o ataque erra
+    if (currentEnemy.nome === 'A Sombra Primordial' && !hasMantraDosSombras) {
+      setBattleLog(prev => [
+        ...prev,
+        `⚔️ Seu ataque passou através da Sombra Primordial! Você precisa da Mantra das Sombras para acertá-la!`,
+      ]);
+      
+      // Inimigo ataca de volta
+      const enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
+      const newPlayerHp = character.vida - enemyDamage;
+      
+      setBattleLog(prev => [...prev, `💥 A Sombra Primordial causou ${enemyDamage} de dano!`]);
+      
+      if (newPlayerHp <= 0) {
+        setBattleLog(prev => [...prev, `💀 Você foi derrotado! Game Over.`]);
+        const updatedChar = { ...character, vida: 0 };
+        setCharacter(updatedChar);
+        onCharacterUpdate(updatedChar);
+        setInBattle(false);
+      } else {
+        const updatedChar = { ...character, vida: newPlayerHp };
+        setCharacter(updatedChar);
+        onCharacterUpdate(updatedChar);
+      }
+      return;
+    }
+    
     // Se usar arco, usa poder de fogo ao invés de força
     const attackStat = character.arma === 'Arco' ? stats.poderDeFogo : stats.forca;
     
+    // Adicionar bônus de dano da arma equipada
+    const weaponDamageBonus = equippedWeapon?.bonus?.dano || 0;
+    
     // Inteligência adiciona ao dado
-    const playerDamage = Math.max(1, attackStat + stats.poderDeFogo + character.inteligencia + Math.floor(Math.random() * 6));
+    const playerDamage = Math.max(1, attackStat + stats.poderDeFogo + character.inteligencia + weaponDamageBonus + Math.floor(Math.random() * 6));
     
     // Sistema de esquiva: se o jogador tiver mais destreza, 50% chance de desviar
     let enemyDamage = 0;
@@ -364,6 +451,8 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     } else if (item.tipo === 'armadura') {
       setEquippedArmor(item);
       setBattleLog(prev => [...prev, `🛡️ Você equipou: ${item.nome}`]);
+    } else if (item.tipo === 'especial') {
+      setBattleLog(prev => [...prev, `✨ ${item.nome} obtida! Agora você pode atacar a Sombra Primordial!`]);
     }
   };
 
@@ -474,6 +563,8 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                     >
                       Usar
                     </Button>
+                  ) : item.tipo === 'especial' ? (
+                    <span className="text-xs text-accent-foreground">✨ Item Especial</span>
                   ) : (
                     <Button 
                       onClick={() => equipItem(item)}
@@ -540,11 +631,17 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
               <div 
                 className="fixed inset-0 flex items-center justify-center z-50"
                 style={{
-                  backgroundImage: `url(${bossBackground})`,
+                  backgroundImage: `url(${getBossBackground(currentEnemy.nome)})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center'
                 }}
               >
+                {/* Tocar música do boss final */}
+                {currentEnemy.nome === 'Aeternus, o Deus das Sombras' && (
+                  <audio autoPlay loop>
+                    <source src="/boss-music.mp3" type="audio/mpeg" />
+                  </audio>
+                )}
                 <div className="w-full max-w-4xl mx-auto relative">
                   <div className="bg-black/80 border-8 border-white p-8 rounded-sm min-h-[600px] flex flex-col">
                     {/* Boss Sprite */}
