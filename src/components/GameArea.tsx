@@ -92,7 +92,7 @@ const enemies: Enemy[] = [
 
 const bosses: Enemy[] = [
   { nome: 'Arkanus, O Guerreiro Perdido', foto: bossArkanus, forca: 8, des: 2, cons: 20, pdf: 3, int: 5, vida: 75, magia: 300 },
-  { nome: 'A Sombra Primordial', foto: bossShadow, forca: 6, des: 9999, cons: 0, pdf: 0, int: 10, vida: 1, magia: 500 },
+  { nome: 'A Sombra Primordial', foto: bossShadow, forca: 6, des: 9999, cons: 0, pdf: 0, int: 10, vida: 50, magia: 500 },
   { nome: 'Infernus Veylor, O Assasino de Vultos', foto: bossInfernus, forca: 3, des: 10, cons: 43, pdf: 15, int: 15, vida: 215, magia: 350 },
   { nome: 'Aeternus, o Deus das Sombras', foto: bossAeternus, forca: 30, des: 30, cons: 100, pdf: 20, int: 30, vida: 750, magia: 2000 },
 ];
@@ -123,6 +123,8 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     y: 0
   });
   const [showInventoryInBattle, setShowInventoryInBattle] = useState(false);
+  const [mantraActive, setMantraActive] = useState(false);
+  const [mantraPenalty, setMantraPenalty] = useState({ armadura: 0, ataque: 0 });
   const getLastCheckpoint = (room: number) => Math.floor(room / 10) * 10;
   const [rooms, setRooms] = useState<Array<{ enemy: Enemy | null; cleared: boolean; isBoss: boolean; chest: Item | null }>>([]);
   const [currentEnemy, setCurrentEnemy] = useState<Enemy | null>(null);
@@ -289,10 +291,17 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     const armorBonus = equippedArmor?.bonus || {};
     
     return {
-      forca: character.forca + (weaponBonus.forca || 0) + (armorBonus.forca || 0),
+      forca: character.forca + (weaponBonus.forca || 0) + (armorBonus.forca || 0) - mantraPenalty.ataque,
       poderDeFogo: character.poderDeFogo + (weaponBonus.poderDeFogo || 0) + (armorBonus.poderDeFogo || 0),
-      armadura: character.armadura + (armorBonus.armadura || 0),
+      armadura: character.armadura + (armorBonus.armadura || 0) - mantraPenalty.armadura,
     };
+  };
+  
+  const playAttackSound = () => {
+    const audio = new Audio();
+    audio.volume = 0.3;
+    audio.src = 'data:audio/wav;base64,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';
+    audio.play().catch(() => {});
   };
 
   const attack = () => {
@@ -466,6 +475,14 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       setBattleLog(prev => [...prev, `💚 Você usou ${item.nome} e recuperou ${item.cura} de vida!`]);
       setInventory(prev => prev.filter((_, i) => i !== index));
     }
+  };
+  
+  const useMantra = (index: number) => {
+    setMantraActive(true);
+    setMantraPenalty({ armadura: 1, ataque: 1 });
+    setBattleLog(prev => [...prev, `✨ Você ativou a Mantra das Sombras! (-1 Armadura, -1 Ataque)`]);
+    setBattleLog(prev => [...prev, `⚡ Agora você pode atacar a Sombra Primordial!`]);
+    // Não remove do inventário aqui, apenas após a batalha
   };
 
   const stats = getTotalStats();
@@ -685,6 +702,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                         <span>ATK: {currentEnemy.forca}</span>
                         <span>DEF: {currentEnemy.cons}</span>
                       </div>
+                      <div className="mt-4 text-yellow-300 text-xl font-bold drop-shadow-lg" style={{ fontFamily: 'monospace' }}>
+                        SEU HP: {character.vida}
+                      </div>
                     </div>
                   
                   {/* Battle Box - Undertale Style */}
@@ -710,24 +730,51 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                     <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 bg-black border-8 border-white p-6 max-w-md w-full">
                       <h3 className="text-white text-xl font-bold mb-4" style={{ fontFamily: 'monospace' }}>ITENS</h3>
                       <div className="max-h-48 overflow-y-auto space-y-2">
-                        {inventory.filter(item => item.tipo === 'pocao').length === 0 ? (
-                          <p className="text-white" style={{ fontFamily: 'monospace' }}>Sem poções disponíveis</p>
+                        {inventory.filter(item => item.tipo === 'pocao' || item.especial === 'mantra_sombras').length === 0 ? (
+                          <p className="text-white" style={{ fontFamily: 'monospace' }}>Sem itens disponíveis</p>
                         ) : (
-                          inventory.map((item, index) => 
-                            item.tipo === 'pocao' && (
-                              <button
-                                key={index}
-                                onClick={() => {
-                                  usePotion(item, index);
-                                  setShowInventoryInBattle(false);
-                                }}
-                                className="w-full text-left text-white border-2 border-white px-4 py-2 hover:bg-white hover:text-black transition-all"
-                                style={{ fontFamily: 'monospace' }}
-                              >
-                                {item.nome} (+{item.cura} HP)
-                              </button>
-                            )
-                          )
+                          inventory.map((item, index) => {
+                            if (item.tipo === 'pocao') {
+                              return (
+                                <button
+                                  key={index}
+                                  onClick={() => {
+                                    usePotion(item, index);
+                                    setShowInventoryInBattle(false);
+                                  }}
+                                  className="w-full text-left text-white border-2 border-white px-4 py-2 hover:bg-white hover:text-black transition-all"
+                                  style={{ fontFamily: 'monospace' }}
+                                >
+                                  {item.nome} (+{item.cura} HP)
+                                </button>
+                              );
+                            } else if (item.especial === 'mantra_sombras' && !mantraActive) {
+                              return (
+                                <button
+                                  key={index}
+                                  onClick={() => {
+                                    useMantra(index);
+                                    setShowInventoryInBattle(false);
+                                  }}
+                                  className="w-full text-left text-purple-400 border-2 border-purple-400 px-4 py-2 hover:bg-purple-400 hover:text-black transition-all"
+                                  style={{ fontFamily: 'monospace' }}
+                                >
+                                  ✨ {item.nome} (Use contra a Sombra)
+                                </button>
+                              );
+                            } else if (item.especial === 'mantra_sombras' && mantraActive) {
+                              return (
+                                <div
+                                  key={index}
+                                  className="w-full text-left text-gray-500 border-2 border-gray-500 px-4 py-2"
+                                  style={{ fontFamily: 'monospace' }}
+                                >
+                                  ✨ {item.nome} (Ativa)
+                                </div>
+                              );
+                            }
+                            return null;
+                          })
                         )}
                       </div>
                     </div>
