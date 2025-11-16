@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import VictoryScreen from "@/components/VictoryScreen";
 import heroSword from "@/assets/hero-sword.png";
 import heroBow from "@/assets/hero-bow.png";
 import heroStaff from "@/assets/hero-staff.png";
@@ -114,6 +115,18 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     setCurrentRoom(initialRoom);
   }, [initialRoom]);
   const [maxRooms] = useState(100);
+  
+  // Estatísticas da run
+  const [startTime] = useState(Date.now());
+  const [totalDamageDealt, setTotalDamageDealt] = useState(0);
+  const [potionsUsed, setPotionsUsed] = useState(0);
+  const [enemiesDefeated, setEnemiesDefeated] = useState(0);
+  const [bossesDefeated, setBossesDefeated] = useState(0);
+  const [hasCollectedMantra, setHasCollectedMantra] = useState(false);
+  const [hasCollectedShadowGear, setHasCollectedShadowGear] = useState(false);
+  const [hasCollectedLightGear, setHasCollectedLightGear] = useState(false);
+  const [neverDied, setNeverDied] = useState(true);
+  const [showVictoryScreen, setShowVictoryScreen] = useState(false);
   
   // Calcula o checkpoint mais próximo (múltiplo de 10)
   const [damageAnimation, setDamageAnimation] = useState<{show: boolean, damage: number, x: number, y: number}>({
@@ -297,16 +310,95 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     };
   };
   
-  const playAttackSound = () => {
-    const audio = new Audio();
-    audio.volume = 0.3;
-    audio.src = 'data:audio/wav;base64,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';
-    audio.play().catch(() => {});
+  const playAttackSound = (weaponType: string) => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Sons diferentes por arma
+    switch(weaponType) {
+      case 'Espada':
+        oscillator.frequency.value = 250;
+        oscillator.type = 'sawtooth';
+        gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+        oscillator.stop(audioContext.currentTime + 0.15);
+        break;
+      case 'Arco':
+        oscillator.frequency.value = 600;
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        oscillator.stop(audioContext.currentTime + 0.2);
+        break;
+      case 'Cajado':
+        oscillator.frequency.value = 400;
+        oscillator.type = 'triangle';
+        gainNode.gain.setValueAtTime(0.35, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
+        oscillator.stop(audioContext.currentTime + 0.25);
+        break;
+      case 'Machado':
+        oscillator.frequency.value = 150;
+        oscillator.type = 'square';
+        gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        oscillator.stop(audioContext.currentTime + 0.2);
+        break;
+      default:
+        oscillator.frequency.value = 300;
+        oscillator.type = 'square';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+        oscillator.stop(audioContext.currentTime + 0.15);
+    }
+    
+    oscillator.start(audioContext.currentTime);
+  };
+
+  const playHealSound = () => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 523;
+    oscillator.type = 'sine';
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.4);
+  };
+
+  const playDamageSound = () => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 100;
+    oscillator.type = 'sawtooth';
+    gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
   };
 
   const attack = () => {
     if (!currentEnemy || !inBattle) return;
 
+    // Tocar som de ataque baseado na arma
+    playAttackSound(character.arma);
+    
     // Animação de ataque
     setAttackAnimation(true);
     setTimeout(() => setAttackAnimation(false), 300);
@@ -316,21 +408,23 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     // Verificar se tem Mantra das Sombras para atacar o segundo boss
     const hasMantraDosSombras = inventory.some(item => item.especial === 'mantra_sombras');
     
-    // Se for o segundo boss e não tiver a Mantra, o ataque erra
-    if (currentEnemy.nome === 'A Sombra Primordial' && !hasMantraDosSombras) {
+    // Se for o segundo boss e não tiver a Mantra ativada, o ataque erra
+    if (currentEnemy.nome === 'A Sombra Primordial' && !mantraActive) {
       setBattleLog(prev => [
         ...prev,
-        `⚔️ Seu ataque passou através da Sombra Primordial! Você precisa da Mantra das Sombras para acertá-la!`,
+        `⚔️ Seu ataque passou através da Sombra Primordial! Você precisa usar a Mantra das Sombras para acertá-la!`,
       ]);
       
       // Inimigo ataca de volta
       const enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
       const newPlayerHp = character.vida - enemyDamage;
       
+      playDamageSound();
       setBattleLog(prev => [...prev, `💥 A Sombra Primordial causou ${enemyDamage} de dano!`]);
       
       if (newPlayerHp <= 0) {
         setBattleLog(prev => [...prev, `💀 Você foi derrotado! Game Over.`]);
+        setNeverDied(false);
         const updatedChar = { ...character, vida: 0 };
         setCharacter(updatedChar);
         onCharacterUpdate(updatedChar);
@@ -352,6 +446,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     // Inteligência adiciona ao dado
     const playerDamage = Math.max(1, attackStat + stats.poderDeFogo + character.inteligencia + weaponDamageBonus + Math.floor(Math.random() * 6));
     
+    // Rastrear dano total causado
+    setTotalDamageDealt(prev => prev + playerDamage);
+    
     // Sistema de esquiva: se o jogador tiver mais destreza, 50% chance de desviar
     let enemyDamage = 0;
     let dodged = false;
@@ -362,10 +459,23 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     
     if (!dodged) {
       enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
+      playDamageSound();
     }
 
     const newEnemyHp = currentEnemy.vida - playerDamage;
     const newPlayerHp = character.vida - enemyDamage;
+    
+    // Mostrar dano animado no boss
+    const isBossBattle = rooms[currentRoom + 1]?.isBoss;
+    if (isBossBattle) {
+      setDamageAnimation({
+        show: true,
+        damage: playerDamage,
+        x: Math.random() * 300 + 50,
+        y: Math.random() * 200 + 50
+      });
+      setTimeout(() => setDamageAnimation({ show: false, damage: 0, x: 0, y: 0 }), 1000);
+    }
 
     if (dodged) {
       setBattleLog(prev => [
@@ -387,6 +497,28 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       const xpNeeded = character.level * 100;
       let newLevel = character.level;
       let newPointsToSpend = character.pointsToSpend;
+      
+      // Rastrear inimigos/bosses derrotados
+      if (isBossBattle) {
+        setBossesDefeated(prev => prev + 1);
+        
+        // Limpar mantra após derrotar um boss
+        if (mantraActive) {
+          setMantraActive(false);
+          setMantraPenalty({ armadura: 0, ataque: 0 });
+          setInventory(prev => prev.filter(item => item.especial !== 'mantra_sombras'));
+        }
+        
+        // Verificar se derrotou o boss final
+        if (currentEnemy.nome === 'Aeternus, o Deus das Sombras') {
+          const timeElapsed = Date.now() - startTime;
+          const minutes = Math.floor(timeElapsed / 60000);
+          const seconds = Math.floor((timeElapsed % 60000) / 1000);
+          setShowVictoryScreen(true);
+        }
+      } else {
+        setEnemiesDefeated(prev => prev + 1);
+      }
       
       if (newXP >= xpNeeded) {
         newLevel++;
