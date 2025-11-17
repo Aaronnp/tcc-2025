@@ -17,6 +17,7 @@ interface Character {
   level: number;
   xp: number;
   pointsToSpend: number;
+  hardcore?: boolean;
 }
 
 interface Props {
@@ -28,6 +29,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
   const isLevelUp = !!existingCharacter;
   const [nome, setNome] = useState(existingCharacter?.nome || "");
   const [arma, setArma] = useState(existingCharacter?.arma || "Espada");
+  const [hardcore, setHardcore] = useState(existingCharacter?.hardcore || false);
   
   const [stats, setStats] = useState({
     forca: existingCharacter?.forca || 0,
@@ -99,16 +101,21 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
         alert(`Você precisa distribuir exatamente ${maxPoints} pontos!`);
         return;
       }
+      
+      // Modo cheat: pontos infinitos
+      const isCheatMode = nome.toLowerCase() === 'modocheat';
+      const finalPoints = isCheatMode ? 9999 : 0;
 
       const character: Character = {
         nome,
         ...stats,
-        vida: 10 + stats.constituicao * 2,
+        vida: hardcore ? 10 + stats.constituicao : 10 + stats.constituicao * 2,
         armadura: stats.constituicao + 10,
         arma,
         level: 1,
         xp: 0,
-        pointsToSpend: 0,
+        pointsToSpend: finalPoints,
+        hardcore,
       };
 
       onStartGame(character);
@@ -206,6 +213,21 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
                   <SelectItem value="Machado">Machado</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="hardcore"
+                  checked={hardcore}
+                  onChange={(e) => setHardcore(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="hardcore" className="text-sm">
+                  🔥 Modo Hardcore (vida reduzida pela metade)
+                </Label>
+              </div>
             </div>
           )}
 

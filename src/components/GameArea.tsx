@@ -38,6 +38,7 @@ interface Character {
   level: number;
   xp: number;
   pointsToSpend: number;
+  hardcore?: boolean;
 }
 
 interface Enemy {
@@ -277,8 +278,29 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         tipo: 'pocao',
         cura: 20 + Math.floor(Math.random() * 30),
       };
-      setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou um baú com ${room.chest.nome} e uma Poção de Vida! 📦`]);
-      setInventory(prev => [...prev, room.chest!, potion]);
+      
+      // Adiciona itens especiais das salas 70 e 98
+      if (nextRoom + 1 === 70) {
+        const shadowWeapon: Item = {
+          nome: 'Arma das Sombras',
+          tipo: 'arma',
+          bonus: { dano: 15 },
+        };
+        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou um baú com ${room.chest.nome}, Arma das Sombras e uma Poção de Vida! 📦`]);
+        setInventory(prev => [...prev, room.chest!, shadowWeapon, potion]);
+      } else if (nextRoom + 1 === 98) {
+        const lightWeapon: Item = {
+          nome: 'Arma de Luz',
+          tipo: 'arma',
+          bonus: { dano: 30 },
+        };
+        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou um baú com ${room.chest.nome}, Arma de Luz e uma Poção de Vida! 📦`]);
+        setInventory(prev => [...prev, room.chest!, lightWeapon, potion]);
+      } else {
+        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou um baú com ${room.chest.nome} e uma Poção de Vida! 📦`]);
+        setInventory(prev => [...prev, room.chest!, potion]);
+      }
+      
       setCurrentRoom(nextRoom);
     } else {
       setBattleLog([`✅ Sala ${nextRoom + 1} está vazia e segura.`]);
@@ -465,13 +487,31 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     }
   };
 
+  const playHealSound = () => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 600;
+    oscillator.type = 'sine';
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.4);
+  };
+
   const usePotion = (item: Item, index: number) => {
     if (item.tipo === 'pocao' && item.cura) {
-      const maxHp = 10 + character.constituicao * 2;
+      const maxHp = character.hardcore ? 10 + character.constituicao : 10 + character.constituicao * 2;
       const newHp = Math.min(character.vida + item.cura, maxHp);
       const updatedChar = { ...character, vida: newHp };
       setCharacter(updatedChar);
       onCharacterUpdate(updatedChar);
+      playHealSound();
       setBattleLog(prev => [...prev, `💚 Você usou ${item.nome} e recuperou ${item.cura} de vida!`]);
       setInventory(prev => prev.filter((_, i) => i !== index));
     }
