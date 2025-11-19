@@ -200,35 +200,37 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
           </div>
 
           {!isLevelUp && (
-            <div>
-              <Label htmlFor="arma" className="text-sm font-bold">Item inicial do seu lutador:</Label>
-              <Select value={arma} onValueChange={setArma}>
-                <SelectTrigger className="mt-1 bg-input border-2 border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Espada">Espada</SelectItem>
-                  <SelectItem value="Arco">Arco</SelectItem>
-                  <SelectItem value="Cajado">Cajado</SelectItem>
-                  <SelectItem value="Machado">Machado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="hardcore"
-                  checked={hardcore}
-                  onChange={(e) => setHardcore(e.target.checked)}
-                  className="w-4 h-4"
-                />
-                <Label htmlFor="hardcore" className="text-sm">
-                  🔥 Modo Hardcore (vida reduzida pela metade)
-                </Label>
+            <>
+              <div>
+                <Label htmlFor="arma" className="text-sm font-bold">Item inicial do seu lutador:</Label>
+                <Select value={arma} onValueChange={setArma}>
+                  <SelectTrigger className="mt-1 bg-input border-2 border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Espada">Espada</SelectItem>
+                    <SelectItem value="Arco">Arco</SelectItem>
+                    <SelectItem value="Cajado">Cajado</SelectItem>
+                    <SelectItem value="Machado">Machado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
+              
+              <div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="hardcore"
+                    checked={hardcore}
+                    onChange={(e) => setHardcore(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="hardcore" className="text-sm">
+                    🔥 Modo Hardcore (vida reduzida pela metade)
+                  </Label>
+                </div>
+              </div>
+            </>
           )}
 
           <Button
