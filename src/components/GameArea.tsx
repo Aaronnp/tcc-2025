@@ -126,6 +126,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const [showInventoryInBattle, setShowInventoryInBattle] = useState(false);
   const [mantraActive, setMantraActive] = useState(false);
   const [mantraPenalty, setMantraPenalty] = useState({ armadura: 0, ataque: 0 });
+  const [gameWon, setGameWon] = useState(false);
   const getLastCheckpoint = (room: number) => Math.floor(room / 10) * 10;
   const [rooms, setRooms] = useState<Array<{ enemy: Enemy | null; cleared: boolean; isBoss: boolean; chest: Item | null }>>([]);
   const [currentEnemy, setCurrentEnemy] = useState<Enemy | null>(null);
@@ -256,6 +257,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     if (currentRoom >= maxRooms - 1) {
       setBattleLog(prev => [...prev, "🎉 Você completou todas as salas!"]);
       setStory("Você completou a Dungeon das Sombras! Parabéns, herói!");
+      setGameWon(true);
       return;
     }
 
@@ -550,6 +552,47 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
   const visibleRooms = getVisibleRooms();
   const isBossBattle = rooms[currentRoom + 1]?.isBoss;
+
+  // Tela de Vitória
+  if (gameWon) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{
+        backgroundImage: `url(${bossAeternusBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}>
+        <div className="bg-black/90 border-8 border-yellow-500 p-12 rounded-sm max-w-2xl text-center">
+          <h1 className="text-6xl font-bold text-yellow-500 mb-6 animate-pulse" style={{ fontFamily: 'monospace' }}>
+            🏆 VITÓRIA! 🏆
+          </h1>
+          <p className="text-white text-2xl mb-4" style={{ fontFamily: 'monospace' }}>
+            Você completou a Dungeon das Sombras!
+          </p>
+          <p className="text-white text-xl mb-8" style={{ fontFamily: 'monospace' }}>
+            {character.nome} - Level {character.level}
+          </p>
+          <div className="space-y-2 text-white text-lg mb-8">
+            <p>🗡️ Força Final: {stats.forca}</p>
+            <p>🛡️ Armadura Final: {stats.armadura}</p>
+            <p>💪 Vida Final: {character.vida}</p>
+            <p>⭐ XP Total: {character.xp}</p>
+          </div>
+          <Button 
+            onClick={() => {
+              setGameWon(false);
+              setCurrentRoom(0);
+              generateRooms();
+              setStory("Bem-vindo à Dungeon das Sombras. Sua jornada começa aqui...");
+            }}
+            className="bg-yellow-500 hover:bg-yellow-400 text-black text-xl px-8 py-4 font-bold border-4 border-yellow-300"
+            style={{ fontFamily: 'monospace' }}
+          >
+            🎮 JOGAR NOVAMENTE
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen dungeon-bg overflow-x-auto">
