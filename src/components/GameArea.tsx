@@ -6,6 +6,7 @@ import heroSword from "@/assets/hero-sword.png";
 import heroBow from "@/assets/hero-bow.png";
 import heroStaff from "@/assets/hero-staff.png";
 import heroAxe from "@/assets/hero-axe.png";
+import heroGoku from "@/assets/hero-goku.png";
 import bossAeternus from "@/assets/boss-aeternus.png";
 import bossInfernus from "@/assets/boss-infernus.png";
 import bossShadow from "@/assets/boss-shadow.png";
@@ -137,6 +138,10 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const [equippedArmor, setEquippedArmor] = useState<Item | null>(null);
   const [story, setStory] = useState("Bem-vindo à Dungeon das Sombras. Sua jornada começa aqui...");
   const [attackAnimation, setAttackAnimation] = useState(false);
+  const [attackCooldown, setAttackCooldown] = useState(false);
+  const [kamehamehaAnimation, setKamehamehaAnimation] = useState(false);
+  
+  const isGokuMode = character.arma === 'Goku';
 
   useEffect(() => {
     generateRooms();
@@ -329,7 +334,61 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   };
 
   const attack = () => {
-    if (!currentEnemy || !inBattle) return;
+    if (!currentEnemy || !inBattle || attackCooldown) return;
+
+    // Modo Goku: Kamehameha
+    if (isGokuMode) {
+      setKamehamehaAnimation(true);
+      const gokuAudio = new Audio('/goku-kamehameha.mp3');
+      gokuAudio.volume = 0.5;
+      gokuAudio.play().catch(() => {});
+      
+      // Aguarda o som tocar antes de registrar o ataque
+      setTimeout(() => {
+        setKamehamehaAnimation(false);
+        
+        // Mata o inimigo instantaneamente no modo Goku
+        const xpGained = 100;
+        const newXP = character.xp + xpGained;
+        const xpNeeded = character.level * 100;
+        let newLevel = character.level;
+        let newPointsToSpend = character.pointsToSpend;
+        
+        if (newXP >= xpNeeded) {
+          newLevel++;
+          newPointsToSpend++;
+          setBattleLog(prev => [...prev, `⚡ KAMEHAMEHA! ${currentEnemy.nome} foi obliterado! +${xpGained} XP`, `🎊 LEVEL UP! Agora você é nível ${newLevel}!`]);
+        } else {
+          setBattleLog(prev => [...prev, `⚡ KAMEHAMEHA! ${currentEnemy.nome} foi obliterado! +${xpGained} XP`]);
+        }
+        
+        const updatedChar = { 
+          ...character, 
+          xp: newXP >= xpNeeded ? newXP - xpNeeded : newXP,
+          level: newLevel,
+          pointsToSpend: newPointsToSpend
+        };
+        setCharacter(updatedChar);
+        onCharacterUpdate(updatedChar);
+        
+        const updatedRooms = [...rooms];
+        updatedRooms[currentRoom + 1].cleared = true;
+        setRooms(updatedRooms);
+        setCurrentEnemy(null);
+        setInBattle(false);
+        setCurrentRoom(currentRoom + 1);
+        
+        // Cooldown de 3 segundos
+        setAttackCooldown(true);
+        setTimeout(() => setAttackCooldown(false), 3000);
+      }, 2000); // Tempo do som do Kamehameha
+      
+      return;
+    }
+
+    // Cooldown de 3 segundos
+    setAttackCooldown(true);
+    setTimeout(() => setAttackCooldown(false), 3000);
 
     // Animação de ataque
     setAttackAnimation(true);
@@ -536,6 +595,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       case 'Arco': return heroBow;
       case 'Cajado': return heroStaff;
       case 'Machado': return heroAxe;
+      case 'Goku': return heroGoku;
       default: return heroSword;
     }
   };
@@ -765,14 +825,6 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                           -{damageAnimation.damage}
                         </div>
                       )}
-                      {attackAnimation && (
-                        <img 
-                          src={slashEffect}
-                          alt="slash"
-                          className="absolute w-64 h-64 object-contain animate-fade-in pointer-events-none"
-                          style={{ imageRendering: 'pixelated', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
-                        />
-                      )}
                     </div>
                     
                     {/* Boss Info */}
@@ -790,23 +842,37 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                       </div>
                     </div>
                   
-                  {/* Battle Box - Undertale Style */}
-                  <div className="border-8 border-white bg-black p-8 flex justify-around items-center mt-auto">
-                    <button
-                      onClick={attack}
-                      className="border-4 border-orange-500 bg-black text-orange-500 px-12 py-6 text-2xl font-bold hover:bg-orange-500 hover:text-black transition-all"
-                      style={{ fontFamily: 'monospace' }}
-                    >
-                      ⚔️ FIGHT
-                    </button>
-                    <button
-                      onClick={() => setShowInventoryInBattle(!showInventoryInBattle)}
-                      className="border-4 border-blue-500 bg-black text-blue-500 px-12 py-6 text-2xl font-bold hover:bg-blue-500 hover:text-black transition-all"
-                      style={{ fontFamily: 'monospace' }}
-                    >
-                      🎒 ITEM
-                    </button>
-                  </div>
+                   {/* Battle Box - Undertale Style */}
+                   <div className="border-8 border-white bg-black p-8 flex justify-around items-center mt-auto relative">
+                     {/* Animação Kamehameha */}
+                     {kamehamehaAnimation && (
+                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+                         <div className="text-8xl font-bold text-yellow-400 animate-pulse" style={{ 
+                           fontFamily: 'monospace',
+                           textShadow: '0 0 20px #ffd700, 0 0 40px #ff8c00, 0 0 60px #ff4500',
+                           animation: 'pulse 0.3s infinite, kamehameha 2s linear'
+                         }}>
+                           KA-ME-HA-ME-HA!!!
+                         </div>
+                       </div>
+                     )}
+                     <button
+                       onClick={attack}
+                       disabled={attackCooldown}
+                       className={`border-4 ${isGokuMode ? 'border-yellow-500 text-yellow-500' : 'border-orange-500 text-orange-500'} bg-black px-12 py-6 text-2xl font-bold hover:bg-${isGokuMode ? 'yellow' : 'orange'}-500 hover:text-black transition-all ${attackCooldown ? 'opacity-50 cursor-not-allowed' : ''}`}
+                       style={{ fontFamily: 'monospace' }}
+                     >
+                       {isGokuMode ? '⚡ KAMEHAMEHA' : '⚔️ FIGHT'}
+                       {attackCooldown && ' (Aguarde...)'}
+                     </button>
+                     <button
+                       onClick={() => setShowInventoryInBattle(!showInventoryInBattle)}
+                       className="border-4 border-blue-500 bg-black text-blue-500 px-12 py-6 text-2xl font-bold hover:bg-blue-500 hover:text-black transition-all"
+                       style={{ fontFamily: 'monospace' }}
+                     >
+                       🎒 ITEM
+                     </button>
+                   </div>
                   
                   {/* Inventory in Battle */}
                   {showInventoryInBattle && (
@@ -924,9 +990,25 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                   </div>
                 </div>
                 <div className="mt-6">
+                  {kamehamehaAnimation && (
+                    <div className="mb-4 text-center">
+                      <div className="text-6xl font-bold text-yellow-400 animate-pulse" style={{ 
+                        fontFamily: 'monospace',
+                        textShadow: '0 0 20px #ffd700, 0 0 40px #ff8c00',
+                        animation: 'pulse 0.3s infinite'
+                      }}>
+                        ⚡ KAMEHAMEHA! ⚡
+                      </div>
+                    </div>
+                  )}
                   <div className="space-x-4">
-                    <Button onClick={attack} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-                      Atacar
+                    <Button 
+                      onClick={attack} 
+                      disabled={attackCooldown}
+                      className={`bg-destructive hover:bg-destructive/90 text-destructive-foreground ${attackCooldown ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {isGokuMode ? '⚡ Kamehameha' : 'Atacar'}
+                      {attackCooldown && ' (3s)'}
                     </Button>
                     <Button onClick={flee} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
                       Fugir
