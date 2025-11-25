@@ -30,6 +30,8 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
   const [nome, setNome] = useState(existingCharacter?.nome || "");
   const [arma, setArma] = useState(existingCharacter?.arma || "Espada");
   const [hardcore, setHardcore] = useState(existingCharacter?.hardcore || false);
+  const [hardcoreUnlocked, setHardcoreUnlocked] = useState(false);
+  const [logoClickCount, setLogoClickCount] = useState(0);
   
   const [stats, setStats] = useState({
     forca: existingCharacter?.forca || 0,
@@ -104,14 +106,15 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
       
       // Modo cheat: pontos infinitos
       const isCheatMode = nome.toLowerCase() === 'modocheat';
+      const isGokuMode = nome.toLowerCase() === 'modogoku';
       const finalPoints = isCheatMode ? 9999 : 0;
 
       const character: Character = {
         nome,
         ...stats,
-        vida: hardcore ? 10 + stats.constituicao : 10 + stats.constituicao * 2,
+        vida: isGokuMode ? 999999 : (hardcore ? 10 + stats.constituicao : 10 + stats.constituicao * 2),
         armadura: stats.constituicao + 10,
-        arma,
+        arma: isGokuMode ? 'Goku' : arma,
         level: 1,
         xp: 0,
         pointsToSpend: finalPoints,
@@ -122,10 +125,23 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
     }
   };
 
+  const handleLogoClick = () => {
+    const newCount = logoClickCount + 1;
+    setLogoClickCount(newCount);
+    if (newCount >= 10) {
+      setHardcoreUnlocked(true);
+      setHardcore(true);
+    }
+  };
+
   return (
     <div className="min-h-screen dungeon-bg flex items-center justify-center p-4">
       <div className="parchment-bg p-8 rounded-sm shadow-2xl max-w-2xl w-full border-4 border-primary">
-        <h1 className="text-3xl font-bold text-center mb-2 tracking-wider">
+        <h1 
+          className="text-3xl font-bold text-center mb-2 tracking-wider cursor-pointer select-none"
+          onClick={!isLevelUp ? handleLogoClick : undefined}
+          title={!isLevelUp && !hardcoreUnlocked ? `Cliques: ${logoClickCount}/10` : ''}
+        >
           {isLevelUp ? "LEVEL UP!" : "RPG DAS SOMBRAS"}
         </h1>
         <p className="text-center mb-6 text-sm">
@@ -216,20 +232,26 @@ export default function CharacterCreation({ onStartGame, existingCharacter }: Pr
                 </Select>
               </div>
               
-              <div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="hardcore"
-                    checked={hardcore}
-                    onChange={(e) => setHardcore(e.target.checked)}
-                    className="w-4 h-4"
-                  />
-                  <Label htmlFor="hardcore" className="text-sm">
-                    🔥 Modo Hardcore (vida reduzida pela metade)
-                  </Label>
+              {hardcoreUnlocked && (
+                <div className="bg-gradient-to-r from-red-900/30 to-orange-900/30 p-4 rounded-lg border-2 border-red-500 animate-pulse">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="hardcore"
+                      checked={hardcore}
+                      onChange={(e) => setHardcore(e.target.checked)}
+                      className="w-5 h-5 cursor-pointer"
+                      disabled={hardcoreUnlocked}
+                    />
+                    <Label htmlFor="hardcore" className="text-lg font-bold text-red-400 cursor-pointer">
+                      💀🔥 MODO HARDCORE DESBLOQUEADO! 🔥💀
+                    </Label>
+                  </div>
+                  <p className="text-xs text-red-300 mt-2">
+                    Vida reduzida pela metade - Apenas os corajosos sobrevivem!
+                  </p>
                 </div>
-              </div>
+              )}
             </>
           )}
 
