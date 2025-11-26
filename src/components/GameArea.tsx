@@ -146,6 +146,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   
   const isGokuMode = character.arma === 'Goku';
   const isDevilWeapon = character.arma === 'Diabo';
+  const isInfernoMode = character.hardcore || false;
   
   // Modificar inimigos no modo AFTERMATCH (3x mais fortes)
   const modifiedEnemies = isAftermatch 
@@ -714,7 +715,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
             className="bg-yellow-500 hover:bg-yellow-400 text-black text-xl px-8 py-4 font-bold border-4 border-yellow-300"
             style={{ fontFamily: 'monospace' }}
           >
-            🔙 VOLTAR À FICHA
+            🔙 VOLTAR PARA CRIAÇÃO
           </Button>
         </div>
       </div>
@@ -730,11 +731,11 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
             💀 VOCÊ MORREU 💀
           </h1>
           <Button 
-            onClick={() => onReturnToSheet(getLastCheckpoint(currentRoom))}
+            onClick={() => onReturnToSheet(0)}
             className="bg-red-600 hover:bg-red-700 text-white text-xl px-8 py-4 font-bold"
             style={{ fontFamily: 'monospace' }}
           >
-            VOLTAR À FICHA
+            VOLTAR PARA CRIAÇÃO
           </Button>
         </div>
       </div>
@@ -742,16 +743,24 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   }
 
   return (
-    <div className="min-h-screen dungeon-bg overflow-x-auto">
+    <div className={`min-h-screen overflow-x-auto ${
+      isInfernoMode 
+        ? 'bg-gradient-to-br from-red-950 via-red-900 to-black' 
+        : 'dungeon-bg'
+    }`}>
       <div className="min-w-max p-8">
         {/* Story Section */}
-        <div className="parchment-bg p-6 rounded-sm border-4 border-accent mb-8 max-w-4xl">
-          <h2 className="text-2xl font-bold mb-2 cave-glow">📜 História</h2>
+        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 max-w-4xl ${
+          isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-accent'
+        }`}>
+          <h2 className={`text-2xl font-bold mb-2 ${isInfernoMode ? 'text-red-400' : 'cave-glow'}`}>📜 História</h2>
           <p className="text-sm">{story}</p>
         </div>
 
         {/* Character Info */}
-        <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block">
+        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ${
+          isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
+        }`}>
           <h2 className="text-2xl font-bold mb-4">{character.nome}</h2>
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>Arma: {character.arma}</div>
@@ -769,24 +778,22 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
           </div>
           {character.pointsToSpend > 0 && (
             <Button 
-              onClick={() => {
-                const checkpoint = getLastCheckpoint(currentRoom);
-                onReturnToSheet(checkpoint);
-              }}
-              className="mt-4 w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+              onClick={() => onReturnToSheet(0)}
+              className={`mt-4 w-full ${
+                isInfernoMode 
+                  ? 'bg-red-900 hover:bg-red-800 text-red-100' 
+                  : 'bg-accent hover:bg-accent/90 text-accent-foreground'
+              }`}
             >
               Voltar à Ficha (Gastar Pontos)
-              {currentRoom > 0 && (
-                <span className="text-xs ml-2">
-                  (Voltar {currentRoom - getLastCheckpoint(currentRoom)} {currentRoom - getLastCheckpoint(currentRoom) === 1 ? 'sala' : 'salas'})
-                </span>
-              )}
             </Button>
           )}
         </div>
 
         {/* Equipment */}
-        <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block ml-4">
+        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ml-4 ${
+          isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
+        }`}>
           <h3 className="text-lg font-bold mb-2">⚔️ Equipamentos</h3>
           <div className="text-sm space-y-1">
             <div>Arma: {equippedWeapon?.nome || "Nenhuma"}</div>
@@ -796,7 +803,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
         {/* Inventory */}
         {inventory.length > 0 && (
-          <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block ml-4 max-w-sm">
+          <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ml-4 max-w-sm ${
+            isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
+          }`}>
             <h3 className="text-lg font-bold mb-2">🎒 Inventário</h3>
             <div className="text-xs space-y-2 max-h-32 overflow-y-auto">
               {inventory.map((item, index) => (
@@ -828,7 +837,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         )}
 
         {/* Room Controls */}
-        <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block ml-4">
+        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ml-4 ${
+          isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
+        }`}>
           <div className="text-sm font-bold mb-2">Dungeon: 100 Salas</div>
           <Button 
             onClick={generateRooms} 
@@ -846,11 +857,15 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
               key={room.actualIndex}
               className={`parchment-bg p-6 rounded-sm border-4 w-48 h-48 flex flex-col items-center justify-center transition-all ${
                 room.actualIndex === currentRoom 
-                  ? 'border-accent scale-110 shadow-lg' 
+                  ? isInfernoMode
+                    ? 'border-red-600 scale-110 shadow-lg'
+                    : 'border-accent scale-110 shadow-lg'
                   : room.actualIndex < currentRoom 
                     ? 'border-muted opacity-50' 
                     : room.isBoss
                       ? 'border-destructive'
+                      : isInfernoMode
+                      ? 'border-red-900 bg-red-950/80'
                       : 'border-primary'
               }`}
             >
@@ -1126,7 +1141,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
               </div>
             ) : (
               /* Navegação */
-              <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[400px]">
+              <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block min-w-[400px] ${
+                isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
+              }`}>
                 <h3 className="text-xl font-bold mb-4">🎮 Controles</h3>
                 <div className="flex justify-center mb-4">
                   <img 
@@ -1141,9 +1158,15 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                   <Button 
                     onClick={advanceRoom}
                     disabled={currentRoom >= maxRooms - 1}
-                    className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg px-8 py-4 w-full"
+                    className={`font-bold text-lg px-8 py-4 w-full ${
+                      currentRoom === maxRooms - 1 && isInfernoMode
+                        ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
+                        : isInfernoMode
+                        ? 'bg-red-900 hover:bg-red-800 text-red-100'
+                        : 'bg-accent hover:bg-accent/90 text-accent-foreground'
+                    }`}
                   >
-                    {currentRoom === maxRooms - 1 && character.hardcore ? '🚪 ESCAPAR' : 'Avançar Sala ➡️'}
+                    {currentRoom === maxRooms - 1 && isInfernoMode ? '🚪 ESCAPAR' : '🚪 Avançar Sala'}
                   </Button>
                 </div>
               </div>
@@ -1153,7 +1176,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
         {/* Battle Log */}
         {battleLog.length > 0 && (
-          <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block max-w-2xl ml-4 align-top">
+          <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block max-w-2xl ml-4 align-top ${
+            isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
+          }`}>
             <h3 className="text-lg font-bold mb-4">📜 Log de Eventos</h3>
             <div className="text-sm space-y-1 max-h-48 overflow-y-auto">
               {battleLog.slice(-15).map((log, index) => (
