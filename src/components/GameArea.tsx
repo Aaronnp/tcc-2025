@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { addVictory } from "@/utils/gameProgress";
 import heroSword from "@/assets/hero-sword.png";
 import heroBow from "@/assets/hero-bow.png";
 import heroStaff from "@/assets/hero-staff.png";
@@ -59,6 +60,7 @@ interface Props {
   onCharacterUpdate: (character: Character) => void;
   onReturnToSheet: (currentRoom: number) => void;
   initialRoom?: number;
+  isAftermatch?: boolean;
 }
 
 interface Item {
@@ -107,7 +109,7 @@ const getBossBackground = (bossName: string) => {
   return bossBackground;
 };
 
-export default function GameArea({ character: initialCharacter, onCharacterUpdate, onReturnToSheet, initialRoom = 0 }: Props) {
+export default function GameArea({ character: initialCharacter, onCharacterUpdate, onReturnToSheet, initialRoom = 0, isAftermatch = false }: Props) {
   const [character, setCharacter] = useState(initialCharacter);
   const [currentRoom, setCurrentRoom] = useState(initialRoom);
   
@@ -140,8 +142,19 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const [attackAnimation, setAttackAnimation] = useState(false);
   const [attackCooldown, setAttackCooldown] = useState(false);
   const [kamehamehaAnimation, setKamehamehaAnimation] = useState(false);
+  const [weaponAnimation, setWeaponAnimation] = useState<string | null>(null);
   
   const isGokuMode = character.arma === 'Goku';
+  const isDevilWeapon = character.arma === 'Diabo';
+  
+  // Modificar inimigos no modo AFTERMATCH (3x mais fortes)
+  const modifiedEnemies = isAftermatch 
+    ? enemies.map(e => ({ ...e, vida: e.vida * 3, forca: e.forca * 2, des: e.des * 2 }))
+    : enemies;
+  
+  const modifiedBosses = isAftermatch
+    ? bosses.map(b => ({ ...b, vida: b.vida * 3, forca: b.forca * 2, des: b.des * 2, cons: b.cons * 2 }))
+    : bosses;
 
   useEffect(() => {
     generateRooms();
@@ -153,9 +166,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       const isBossRoom = roomNumber % 25 === 0;
       
       if (isBossRoom) {
-        const bossIndex = Math.min(Math.floor(roomNumber / 25) - 1, bosses.length - 1);
+        const bossIndex = Math.min(Math.floor(roomNumber / 25) - 1, modifiedBosses.length - 1);
         return {
-          enemy: { ...bosses[bossIndex] },
+          enemy: { ...modifiedBosses[bossIndex] },
           cleared: false,
           isBoss: true,
           chest: null,
@@ -206,7 +219,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       const hasChest = !hasEnemy && Math.random() < 0.15; // 15% chance de baú se não tiver inimigo
       
       return {
-        enemy: hasEnemy ? { ...enemies[Math.floor(Math.random() * enemies.length)] } : null,
+        enemy: hasEnemy ? { ...modifiedEnemies[Math.floor(Math.random() * modifiedEnemies.length)] } : null,
         cleared: false,
         isBoss: false,
         chest: hasChest ? generateRandomItem() : null,
@@ -262,6 +275,10 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     if (currentRoom >= maxRooms - 1) {
       setBattleLog(prev => [...prev, "🎉 Você completou todas as salas!"]);
       setStory("Você completou a Dungeon das Sombras! Parabéns, herói!");
+      
+      // Salvar vitória
+      addVictory(character.hardcore || false, isAftermatch);
+      
       setGameWon(true);
       return;
     }
@@ -318,11 +335,13 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const getTotalStats = () => {
     const weaponBonus = equippedWeapon?.bonus || {};
     const armorBonus = equippedArmor?.bonus || {};
+    const devilBonus = isDevilWeapon ? 30 : 0;
     
     return {
       forca: character.forca + (weaponBonus.forca || 0) + (armorBonus.forca || 0) - mantraPenalty.ataque,
       poderDeFogo: character.poderDeFogo + (weaponBonus.poderDeFogo || 0) + (armorBonus.poderDeFogo || 0),
       armadura: character.armadura + (armorBonus.armadura || 0) - mantraPenalty.armadura,
+      danoExtra: (equippedWeapon?.bonus?.dano || 0) + devilBonus,
     };
   };
   
@@ -336,14 +355,15 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const attack = () => {
     if (!currentEnemy || !inBattle || attackCooldown) return;
 
-    // Modo Goku: Kamehameha
+    // Modo Goku: Kamehameha com morte adiada
     if (isGokuMode) {
       setKamehamehaAnimation(true);
+      playWeaponAnimation('Goku');
       const gokuAudio = new Audio('/goku-kamehameha.mp3');
       gokuAudio.volume = 0.5;
       gokuAudio.play().catch(() => {});
       
-      // Aguarda o som tocar antes de registrar o ataque
+      // Aguarda 13 segundos antes de matar o inimigo
       setTimeout(() => {
         setKamehamehaAnimation(false);
         
@@ -381,7 +401,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         // Cooldown de 3 segundos
         setAttackCooldown(true);
         setTimeout(() => setAttackCooldown(false), 3000);
-      }, 2000); // Tempo do som do Kamehameha
+      }, 13000); // 13 segundos para o inimigo morrer
       
       return;
     }
@@ -390,8 +410,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     setAttackCooldown(true);
     setTimeout(() => setAttackCooldown(false), 3000);
 
-    // Animação de ataque
+    // Animação de ataque por arma
     setAttackAnimation(true);
+    playWeaponAnimation(character.arma);
     setTimeout(() => setAttackAnimation(false), 300);
 
     const stats = getTotalStats();
@@ -429,28 +450,61 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     // Se usar arco, usa poder de fogo ao invés de força
     const attackStat = character.arma === 'Arco' ? stats.poderDeFogo : stats.forca;
     
-    // Adicionar bônus de dano da arma equipada
-    const weaponDamageBonus = equippedWeapon?.bonus?.dano || 0;
+    // Adicionar bônus de dano da arma equipada + Arma do Diabo
+    const weaponDamageBonus = stats.danoExtra;
     
     // Inteligência adiciona ao dado
     const playerDamage = Math.max(1, attackStat + stats.poderDeFogo + character.inteligencia + weaponDamageBonus + Math.floor(Math.random() * 6));
     
-    // Sistema de esquiva: se o jogador tiver mais destreza, 50% chance de desviar
-    let enemyDamage = 0;
-    let dodged = false;
-    
-    if (character.destreza > currentEnemy.des) {
-      dodged = Math.random() < 0.5;
+    // Sistema de esquiva: se o INIMIGO tiver mais destreza, pode desviar
+    let enemyDodged = false;
+    if (currentEnemy.des > character.destreza) {
+      enemyDodged = Math.random() < 0.3; // 30% de chance de desviar
     }
     
-    if (!dodged) {
+    // Sistema de esquiva do jogador: se o jogador tiver mais destreza, 50% chance de desviar
+    let enemyDamage = 0;
+    let playerDodged = false;
+    
+    if (character.destreza > currentEnemy.des) {
+      playerDodged = Math.random() < 0.5;
+    }
+    
+    if (!playerDodged) {
       enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
+    }
+
+    if (enemyDodged) {
+      setBattleLog(prev => [
+        ...prev,
+        `💨 ${currentEnemy.nome} desviou do seu ataque!`,
+      ]);
+      
+      if (!playerDodged) {
+        const newPlayerHp = character.vida - enemyDamage;
+        setBattleLog(prev => [...prev, `💥 Inimigo causou ${enemyDamage} de dano!`]);
+        
+        if (newPlayerHp <= 0) {
+          setBattleLog(prev => [...prev, `💀 Você foi derrotado! Game Over.`]);
+          const updatedChar = { ...character, vida: 0 };
+          setCharacter(updatedChar);
+          onCharacterUpdate(updatedChar);
+          setInBattle(false);
+        } else {
+          const updatedChar = { ...character, vida: newPlayerHp };
+          setCharacter(updatedChar);
+          onCharacterUpdate(updatedChar);
+        }
+      } else {
+        setBattleLog(prev => [...prev, `💨 Você desviou do contra-ataque!`]);
+      }
+      return;
     }
 
     const newEnemyHp = currentEnemy.vida - playerDamage;
     const newPlayerHp = character.vida - enemyDamage;
 
-    if (dodged) {
+    if (playerDodged) {
       setBattleLog(prev => [
         ...prev,
         `⚔️ Você causou ${playerDamage} de dano!`,
