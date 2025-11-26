@@ -273,14 +273,25 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
   const advanceRoom = () => {
     if (currentRoom >= maxRooms - 1) {
-      setBattleLog(prev => [...prev, "🎉 Você completou todas as salas!"]);
-      setStory("Você completou a Dungeon das Sombras! Parabéns, herói!");
-      
-      // Salvar vitória
-      addVictory(character.hardcore || false, isAftermatch);
-      
       setGameWon(true);
+      addVictory(character.hardcore || false, isAftermatch);
       return;
+    }
+    
+    // Mensagens desmotivadoras no modo inferno a cada 3 portas
+    if (character.hardcore && (currentRoom + 2) % 3 === 0) {
+      const demoMessages = [
+        "Você ainda acredita que pode escapar?",
+        "A escuridão cresce a cada passo...",
+        "Suas forças estão se esgotando...",
+        "O inferno não tem piedade...",
+        "Você não deveria estar aqui...",
+        "Desistir seria mais fácil...",
+        "A morte é inevitável...",
+        "Você está sozinho nesta jornada..."
+      ];
+      const randomMessage = demoMessages[Math.floor(Math.random() * demoMessages.length)];
+      setBattleLog(prev => [...prev, `🔥 ${randomMessage}`]);
     }
 
     playDoorSound();
@@ -358,7 +369,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     // Modo Goku: Kamehameha com morte adiada
     if (isGokuMode) {
       setKamehamehaAnimation(true);
-      playWeaponAnimation('Goku');
+      setWeaponAnimation('Goku');
       const gokuAudio = new Audio('/goku-kamehameha.mp3');
       gokuAudio.volume = 0.5;
       gokuAudio.play().catch(() => {});
@@ -412,8 +423,11 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
     // Animação de ataque por arma
     setAttackAnimation(true);
-    playWeaponAnimation(character.arma);
-    setTimeout(() => setAttackAnimation(false), 300);
+    setWeaponAnimation(character.arma);
+    setTimeout(() => {
+      setAttackAnimation(false);
+      setWeaponAnimation(null);
+    }, 1000);
 
     const stats = getTotalStats();
     
@@ -677,10 +691,14 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       }}>
         <div className="bg-black/90 border-8 border-yellow-500 p-12 rounded-sm max-w-2xl text-center">
           <h1 className="text-6xl font-bold text-yellow-500 mb-6 animate-pulse" style={{ fontFamily: 'monospace' }}>
-            🏆 VITÓRIA! 🏆
+            {character.hardcore ? '🚪 VOCÊ ESCAPOU! 🚪' : '🏆 VITÓRIA! 🏆'}
           </h1>
           <p className="text-white text-2xl mb-4" style={{ fontFamily: 'monospace' }}>
-            Você completou a Dungeon das Sombras!
+            {character.hardcore 
+              ? 'Você conseguiu escapar do inferno!' 
+              : isAftermatch 
+                ? 'Você completou o modo AFTERMATCH!' 
+                : 'Você completou a Dungeon das Sombras!'}
           </p>
           <p className="text-white text-xl mb-8" style={{ fontFamily: 'monospace' }}>
             {character.nome} - Level {character.level}
@@ -692,16 +710,31 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
             <p>⭐ XP Total: {character.xp}</p>
           </div>
           <Button 
-            onClick={() => {
-              setGameWon(false);
-              setCurrentRoom(0);
-              generateRooms();
-              setStory("Bem-vindo à Dungeon das Sombras. Sua jornada começa aqui...");
-            }}
+            onClick={() => onReturnToSheet(0)}
             className="bg-yellow-500 hover:bg-yellow-400 text-black text-xl px-8 py-4 font-bold border-4 border-yellow-300"
             style={{ fontFamily: 'monospace' }}
           >
-            🎮 JOGAR NOVAMENTE
+            🔙 VOLTAR À FICHA
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  // Tela de Game Over
+  if (character.vida <= 0) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+        <div className="text-center">
+          <h1 className="text-6xl font-bold text-red-600 mb-8 animate-pulse" style={{ fontFamily: 'monospace' }}>
+            💀 VOCÊ MORREU 💀
+          </h1>
+          <Button 
+            onClick={() => onReturnToSheet(getLastCheckpoint(currentRoom))}
+            className="bg-red-600 hover:bg-red-700 text-white text-xl px-8 py-4 font-bold"
+            style={{ fontFamily: 'monospace' }}
+          >
+            VOLTAR À FICHA
           </Button>
         </div>
       </div>
@@ -1028,6 +1061,27 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                     </div>
                   )}
                   
+                  {/* Animações de Arma */}
+                  {weaponAnimation && (
+                    <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                      {weaponAnimation === 'Espada' && (
+                        <div className="text-8xl animate-sword-slash">⚔️</div>
+                      )}
+                      {weaponAnimation === 'Arco' && (
+                        <div className="text-8xl animate-bow-arrow">🏹</div>
+                      )}
+                      {weaponAnimation === 'Cajado' && (
+                        <div className="text-8xl animate-staff-magic">🪄✨</div>
+                      )}
+                      {weaponAnimation === 'Machado' && (
+                        <div className="text-8xl animate-axe-swing">🪓</div>
+                      )}
+                      {weaponAnimation === 'Diabo' && (
+                        <div className="text-8xl animate-devil-strike">😈🔥</div>
+                      )}
+                    </div>
+                  )}
+                  
                   {/* Inimigo à direita */}
                   <div className="flex flex-col items-center">
                     <img 
@@ -1089,7 +1143,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                     disabled={currentRoom >= maxRooms - 1}
                     className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg px-8 py-4 w-full"
                   >
-                    Avançar Sala ➡️
+                    {currentRoom === maxRooms - 1 && character.hardcore ? '🚪 ESCAPAR' : 'Avançar Sala ➡️'}
                   </Button>
                 </div>
               </div>

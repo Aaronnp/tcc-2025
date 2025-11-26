@@ -65,7 +65,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
   const totalNewPoints = Object.values(newPoints).reduce((a, b) => a + b, 0);
   const pointsToSpend = existingCharacter?.pointsToSpend || 0;
   const totalPoints = Object.values(stats).reduce((a, b) => a + b, 0);
-  const maxPoints = isLevelUp ? pointsToSpend : (hellModeActive ? 35 : 15);
+  const maxPoints = isLevelUp ? pointsToSpend : (hellModeActive ? 25 : 15);
 
   const handleStatChange = (stat: keyof typeof stats, value: number) => {
     if (isLevelUp) {
@@ -187,7 +187,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
       setHellModeActive(true);
       
       // Toca música sombria
-      const audio = new Audio('/boss-music.mp3');
+      const audio = new Audio('/inferno-music.mp3');
       audio.loop = true;
       audio.volume = 0.3;
       audio.play().catch(() => {});
@@ -225,17 +225,18 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
         className="min-h-screen dungeon-bg flex items-center justify-center p-4 transition-all duration-1000"
         style={{
           backgroundColor: hellModeActive 
-            ? `rgb(${Math.min(50 + redIntensity * 2, 139)}, 0, 0)` 
-            : undefined
+            ? `rgb(${Math.min(30 + redIntensity, 80)}, 0, 0)` 
+            : undefined,
+          filter: hellModeActive ? 'brightness(0.7) contrast(1.2)' : undefined
         }}
       >
-        <div className={`parchment-bg p-8 rounded-sm shadow-2xl max-w-2xl w-full border-4 ${
-          hellModeActive ? 'border-red-600 glitch-target' : 'border-primary'
+        <div className={`p-8 rounded-sm shadow-2xl max-w-2xl w-full border-4 transition-all ${
+          hellModeActive ? 'bg-red-950/90 border-red-800 glitch-target' : 'parchment-bg border-primary'
         }`}>
         <h1 
           className={`text-3xl font-bold text-center mb-2 tracking-wider cursor-pointer select-none glitch-target transition-all ${
-            hellModeActive ? 'text-red-600 animate-pulse' : ''
-          }`}
+            hellModeActive ? 'text-red-500 animate-pulse' : ''
+          } ${logoClickCount > 0 && logoClickCount < 10 ? 'animate-shake' : ''}`}
           onClick={handleLogoClick}
           title={!isLevelUp && !hardcoreUnlocked ? `Cliques: ${logoClickCount}/10` : ''}
         >
@@ -245,21 +246,21 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
           {isLevelUp ? `Distribua ${pointsToSpend} pontos` : "Crie seu lutador"}
         </p>
         {!isLevelUp && (
-        <p className="text-center mb-6 text-xs">
-            Você tem 15 pontos para distribuir em 5 atributos
+        <p className={`text-center mb-6 text-xs ${hellModeActive ? 'text-red-300' : ''}`}>
+            Você tem {hellModeActive ? '25' : '15'} pontos para distribuir em 5 atributos
           </p>
         )}
 
         <div className="space-y-4">
           {!isLevelUp && (
             <div>
-              <Label htmlFor="nome" className="text-sm font-bold">Nome:</Label>
+              <Label htmlFor="nome" className={`text-sm font-bold ${hellModeActive ? 'text-red-300' : ''}`}>Nome:</Label>
               <Input
                 id="nome"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Seu nome legal"
-                className="mt-1 bg-input border-2 border-border"
+                className={`mt-1 border-2 ${hellModeActive ? 'bg-red-950/50 border-red-800 text-red-100 placeholder:text-red-400' : 'bg-input border-border'}`}
               />
             </div>
           )}
@@ -268,38 +269,40 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
             {(Object.keys(stats) as Array<keyof typeof stats>).map((stat) => (
               <div key={stat}>
                 <div className="flex items-center gap-2">
-                  <Label htmlFor={stat} className="text-sm font-bold capitalize">
+                  <Label htmlFor={stat} className={`text-sm font-bold capitalize ${hellModeActive ? 'text-red-300' : ''}`}>
                     {stat === "forca" ? "Força" : 
                      stat === "constituicao" ? "Constituição" : 
                      stat === "inteligencia" ? "Inteligência" :
                      stat === "poderDeFogo" ? "Poder de Fogo" : stat}:
                   </Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="text-xs cursor-help">ℹ️</span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">{statTooltips[stat]}</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  {!hellModeActive && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs cursor-help">ℹ️</span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">{statTooltips[stat]}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
                 {isLevelUp ? (
                   <div className="flex gap-2 items-center mt-1">
                     <Input
                       value={stats[stat]}
                       disabled
-                      className="bg-muted border-2 border-border w-20"
+                      className={`border-2 w-20 ${hellModeActive ? 'bg-red-950/50 border-red-800 text-red-300' : 'bg-muted border-border'}`}
                     />
-                    <span className="text-lg font-bold">+</span>
+                    <span className={`text-lg font-bold ${hellModeActive ? 'text-red-300' : ''}`}>+</span>
                     <Input
                       id={stat}
                       type="number"
                       value={newPoints[stat]}
                       onChange={(e) => handleStatChange(stat, parseInt(e.target.value) || 0)}
-                      className="mt-0 bg-input border-2 border-accent w-20"
+                      className={`mt-0 border-2 w-20 ${hellModeActive ? 'bg-red-950/50 border-red-700 text-red-100' : 'bg-input border-accent'}`}
                       min="0"
                     />
-                    <span className="text-sm font-bold">= {stats[stat] + newPoints[stat]}</span>
+                    <span className={`text-sm font-bold ${hellModeActive ? 'text-red-300' : ''}`}>= {stats[stat] + newPoints[stat]}</span>
                   </div>
                 ) : (
                   <Input
@@ -307,7 +310,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
                     type="number"
                     value={stats[stat]}
                     onChange={(e) => handleStatChange(stat, parseInt(e.target.value) || 0)}
-                    className="mt-1 bg-input border-2 border-border"
+                    className={`mt-1 border-2 ${hellModeActive ? 'bg-red-950/50 border-red-800 text-red-100' : 'bg-input border-border'}`}
                     min="0"
                   />
                 )}
@@ -315,7 +318,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
             ))}
           </div>
 
-          <div className="text-center text-sm font-bold">
+          <div className={`text-center text-sm font-bold ${hellModeActive ? 'text-red-300' : ''}`}>
             {isLevelUp 
               ? `Novos pontos usados: ${totalNewPoints} / ${pointsToSpend}`
               : `Pontos usados: ${totalPoints} / ${maxPoints}`
@@ -325,12 +328,12 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
           {!isLevelUp && (
             <>
               <div>
-                <Label htmlFor="arma" className="text-sm font-bold">Item inicial do seu lutador:</Label>
+                <Label htmlFor="arma" className={`text-sm font-bold ${hellModeActive ? 'text-red-300' : ''}`}>Item inicial do seu lutador:</Label>
                 <Select value={arma} onValueChange={setArma}>
-                  <SelectTrigger className="mt-1 bg-input border-2 border-border">
+                  <SelectTrigger className={`mt-1 border-2 ${hellModeActive ? 'bg-red-950/50 border-red-800 text-red-100' : 'bg-input border-border'}`}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className={hellModeActive ? 'bg-red-950 border-red-800' : ''}>
                     <SelectItem value="Espada">Espada</SelectItem>
                     <SelectItem value="Arco">Arco</SelectItem>
                     <SelectItem value="Cajado">Cajado</SelectItem>
@@ -348,14 +351,14 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
                       checked={hardcore}
                       onChange={(e) => setHardcore(e.target.checked)}
                       className="w-5 h-5 cursor-pointer"
-                      disabled={hardcoreUnlocked}
+                      disabled={!hardcoreUnlocked}
                     />
                     <Label htmlFor="hardcore" className="text-2xl font-bold text-red-400 cursor-pointer animate-pulse">
                       💀🔥 MODO INFERNO ATIVADO! 🔥💀
                     </Label>
                   </div>
                   <p className="text-sm text-red-300 font-bold">
-                    +20 PONTOS EXTRAS! Vida reduzida à metade!
+                    +10 PONTOS EXTRAS! Vida reduzida à metade!
                   </p>
                   {progress.hasDevilWeapon && (
                     <p className="text-yellow-400 text-xs mt-2 font-bold">
@@ -369,9 +372,14 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
 
           <Button
             onClick={handleSubmit}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 border-2 border-primary-foreground"
+            disabled={isLevelUp ? totalNewPoints !== maxPoints : totalPoints !== maxPoints}
+            className={`w-full font-bold text-lg py-6 ${
+              hellModeActive 
+                ? 'bg-red-900 hover:bg-red-800 text-red-100 border-2 border-red-600' 
+                : 'bg-accent hover:bg-accent/90 text-accent-foreground'
+            }`}
           >
-            {isLevelUp ? "CONFIRMAR PONTOS 🔥" : "CONFIRMAR LUTADOR 🔥"}
+            {isLevelUp ? "LEVEL UP" : (hellModeActive ? '🔥 ENTRAR NO INFERNO 🔥' : 'Aventura Agora')}
           </Button>
         </div>
       </div>
