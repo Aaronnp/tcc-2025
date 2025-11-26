@@ -80,10 +80,40 @@ export default {
             height: "0",
           },
         },
+        "sword-slash": {
+          "0%": { transform: "translateX(-50px) rotate(-45deg)", opacity: "0" },
+          "50%": { opacity: "1" },
+          "100%": { transform: "translateX(50px) rotate(45deg)", opacity: "0" }
+        },
+        "bow-arrow": {
+          "0%": { transform: "translateX(-100px) scale(0.5)", opacity: "0" },
+          "50%": { opacity: "1" },
+          "100%": { transform: "translateX(100px) scale(1)", opacity: "0" }
+        },
+        "staff-magic": {
+          "0%": { transform: "scale(0) rotate(0deg)", opacity: "0" },
+          "50%": { transform: "scale(1.5) rotate(180deg)", opacity: "1" },
+          "100%": { transform: "scale(0) rotate(360deg)", opacity: "0" }
+        },
+        "axe-swing": {
+          "0%": { transform: "translateY(-50px) rotate(0deg)", opacity: "0" },
+          "50%": { opacity: "1" },
+          "100%": { transform: "translateY(50px) rotate(360deg)", opacity: "0" }
+        },
+        "devil-strike": {
+          "0%": { transform: "scale(0.5)", opacity: "0", filter: "hue-rotate(0deg)" },
+          "50%": { transform: "scale(1.5)", opacity: "1", filter: "hue-rotate(180deg)" },
+          "100%": { transform: "scale(0.5)", opacity: "0", filter: "hue-rotate(360deg)" }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "sword-slash": "sword-slash 1s ease-out",
+        "bow-arrow": "bow-arrow 1s ease-out",
+        "staff-magic": "staff-magic 1s ease-out",
+        "axe-swing": "axe-swing 1s ease-out",
+        "devil-strike": "devil-strike 1s ease-out",
       },
     },
   },
