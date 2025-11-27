@@ -435,11 +435,12 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     // Verificar se tem Mantra das Sombras para atacar o segundo boss
     const hasMantraDosSombras = inventory.some(item => item.especial === 'mantra_sombras');
     
-    // Se for o segundo boss e não tiver a Mantra, o ataque erra
-    if (currentEnemy.nome === 'A Sombra Primordial' && !hasMantraDosSombras) {
+    // Se for o segundo boss (A Sombra Primordial), ela desvia de TUDO exceto se usar a Mantra
+    if (currentEnemy.nome === 'A Sombra Primordial' && !mantraActive) {
       setBattleLog(prev => [
         ...prev,
-        `⚔️ Seu ataque passou através da Sombra Primordial! Você precisa da Mantra das Sombras para acertá-la!`,
+        `💨 A Sombra Primordial desviou do seu ataque! Ela é intangível...`,
+        hasMantraDosSombras ? `💡 Use a Mantra das Sombras no inventário para poder atacá-la!` : `⚠️ Você precisa encontrar a Mantra das Sombras (Sala 45) para derrotá-la!`,
       ]);
       
       // Inimigo ataca de volta
@@ -692,11 +693,11 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       }}>
         <div className="bg-black/90 border-8 border-yellow-500 p-12 rounded-sm max-w-2xl text-center">
           <h1 className="text-6xl font-bold text-yellow-500 mb-6 animate-pulse" style={{ fontFamily: 'monospace' }}>
-            {character.hardcore ? '🚪 VOCÊ ESCAPOU! 🚪' : '🏆 VITÓRIA! 🏆'}
+            {character.hardcore ? '💀 VOCÊ ESCAPOU! 💀' : '🏆 VITÓRIA! 🏆'}
           </h1>
           <p className="text-white text-2xl mb-4" style={{ fontFamily: 'monospace' }}>
             {character.hardcore 
-              ? 'Você conseguiu escapar do inferno!' 
+              ? 'Você conseguiu escapar do MODO IMPOSSÍVEL!' 
               : isAftermatch 
                 ? 'Você completou o modo AFTERMATCH!' 
                 : 'Você completou a Dungeon das Sombras!'}

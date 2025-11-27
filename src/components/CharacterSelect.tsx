@@ -1,5 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { getGameProgress } from "@/utils/gameProgress";
+import heroGoku from "@/assets/hero-goku.png";
+import heroSonic from "@/assets/hero-sonic.png";
+import heroSword from "@/assets/hero-sword.png";
 
 interface Character {
   id: number;
@@ -14,6 +17,8 @@ interface Character {
   };
   requiredVictories: number;
   requiredHardcore?: boolean;
+  sprite?: string;
+  specialPower?: string;
 }
 
 const CHARACTERS: Character[] = [
@@ -22,28 +27,29 @@ const CHARACTERS: Character[] = [
     nome: "Guerreiro",
     descricao: "Personagem padrão",
     bonus: {},
-    requiredVictories: 0
+    requiredVictories: 0,
+    sprite: heroSword
   },
   {
     id: 1,
     nome: "Arqueiro Sombrio",
     descricao: "+5 Destreza, +3 Poder de Fogo",
     bonus: { destreza: 5, poderDeFogo: 3 },
-    requiredVictories: 1
+    requiredVictories: 10
   },
   {
     id: 2,
     nome: "Mago das Sombras",
     descricao: "+8 Inteligência, +4 Poder de Fogo",
     bonus: { inteligencia: 8, poderDeFogo: 4 },
-    requiredVictories: 3
+    requiredVictories: 10
   },
   {
     id: 3,
     nome: "Paladino",
     descricao: "+6 Força, +6 Constituição",
     bonus: { forca: 6, constituicao: 6 },
-    requiredVictories: 5
+    requiredVictories: 10
   },
   {
     id: 4,
@@ -65,7 +71,25 @@ const CHARACTERS: Character[] = [
     nome: "Deus Guerreiro",
     descricao: "+50 em todos os atributos (Requer vitória AFTERMATCH)",
     bonus: { forca: 50, destreza: 50, constituicao: 50, inteligencia: 50, poderDeFogo: 50 },
-    requiredVictories: 999 // Requer vitória no aftermatch
+    requiredVictories: 999
+  },
+  {
+    id: 7,
+    nome: "Goku",
+    descricao: "Poder do Kamehameha! Derrota qualquer inimigo",
+    bonus: { forca: 999, destreza: 999, constituicao: 999, inteligencia: 999, poderDeFogo: 999 },
+    requiredVictories: 10,
+    sprite: heroGoku,
+    specialPower: 'kamehameha'
+  },
+  {
+    id: 8,
+    nome: "Sonic",
+    descricao: "Velocidade extrema! Desvia de todos os ataques",
+    bonus: { destreza: 9999 },
+    requiredVictories: 10,
+    sprite: heroSonic,
+    specialPower: 'dodge_all'
   }
 ];
 
@@ -82,7 +106,9 @@ export default function CharacterSelect({ onSelect, onClose }: Props) {
     if (char.id === 6) {
       return progress.unlockedCharacters.includes(6);
     }
-    return progress.unlockedCharacters.includes(char.id);
+    // Todos os outros personagens precisam de 10 vitórias
+    return progress.totalVictories >= char.requiredVictories && 
+           (!char.requiredHardcore || progress.hardcoreVictories >= 1);
   };
 
   return (
@@ -91,7 +117,7 @@ export default function CharacterSelect({ onSelect, onClose }: Props) {
         <h1 className="text-4xl font-bold text-yellow-500 mb-2 text-center">⚔️ SELECIONAR PERSONAGEM ⚔️</h1>
         <p className="text-white text-center mb-6">Vitórias: {progress.totalVictories} | Hardcore: {progress.hardcoreVictories}</p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {CHARACTERS.map((char) => {
             const unlocked = isCharacterUnlocked(char);
             return (
@@ -103,12 +129,27 @@ export default function CharacterSelect({ onSelect, onClose }: Props) {
                     : 'bg-gray-900/50 border-gray-700'
                 }`}
               >
+                {char.sprite && unlocked && (
+                  <div className="flex justify-center mb-2">
+                    <img 
+                      src={char.sprite} 
+                      alt={char.nome} 
+                      className="w-16 h-16 object-contain pixelated"
+                      style={{ imageRendering: 'pixelated' }}
+                    />
+                  </div>
+                )}
                 <h3 className={`text-xl font-bold mb-2 ${unlocked ? 'text-yellow-500' : 'text-gray-500'}`}>
                   {unlocked ? char.nome : '🔒 Trancado'}
                 </h3>
                 <p className={`text-sm mb-3 ${unlocked ? 'text-white' : 'text-gray-600'}`}>
                   {unlocked ? char.descricao : `Requer ${char.requiredVictories} vitória${char.requiredVictories > 1 ? 's' : ''}${char.requiredHardcore ? ' + 1 Hardcore' : ''}`}
                 </p>
+                {char.specialPower && unlocked && (
+                  <p className="text-cyan-400 text-xs mb-2 font-bold">
+                    ⚡ Poder Especial: {char.specialPower === 'kamehameha' ? 'Kamehameha' : 'Esquiva Total'}
+                  </p>
+                )}
                 {unlocked && (
                   <>
                     {char.id === 5 && (

@@ -80,7 +80,31 @@ const Index = () => {
           <p className="text-gray-400 text-center mb-8">
             Em breve você poderá desbloquear personagens especiais baseado nas suas conquistas.
           </p>
-          <div className="flex justify-center">
+          
+          {/* Preview dos personagens */}
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-600 text-center">
+              <p className="text-yellow-400 font-bold">🔒 Goku</p>
+              <p className="text-gray-400 text-sm">Requer 10 vitórias</p>
+            </div>
+            <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-600 text-center">
+              <p className="text-blue-400 font-bold">🔒 Sonic</p>
+              <p className="text-gray-400 text-sm">Requer 10 vitórias</p>
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-4">
+            {progress.totalVictories >= 3 && (
+              <Button
+                onClick={() => {
+                  setShowCharactersTab(false);
+                  setShowSandbox(true);
+                }}
+                className="bg-yellow-600 hover:bg-yellow-500 text-yellow-900 text-xl px-8 py-4 font-bold"
+              >
+                🎮 SANDBOX
+              </Button>
+            )}
             <Button
               onClick={() => setShowCharactersTab(false)}
               className="bg-purple-600 hover:bg-purple-500 text-white text-xl px-8 py-4 font-bold"
@@ -119,7 +143,7 @@ const Index = () => {
             🎭 PERSONAGENS
           </Button>
         </div>
-        {progress.totalVictories >= 5 && (
+        {progress.totalVictories >= 3 && (
           <div className="fixed top-4 right-4 z-50">
             <Button
               onClick={() => setShowSandbox(true)}
