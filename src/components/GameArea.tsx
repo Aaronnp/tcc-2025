@@ -58,7 +58,7 @@ interface Enemy {
 interface Props {
   character: Character;
   onCharacterUpdate: (character: Character) => void;
-  onReturnToSheet: (currentRoom: number) => void;
+  onReturnToSheet: (currentRoom: number, resetCharacter?: boolean) => void;
   initialRoom?: number;
   isAftermatch?: boolean;
 }
@@ -723,7 +723,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
             <p>⭐ XP Total: {character.xp}</p>
           </div>
           <Button 
-            onClick={() => onReturnToSheet(0)}
+            onClick={() => onReturnToSheet(0, true)}
             className="bg-yellow-500 hover:bg-yellow-400 text-black text-xl px-8 py-4 font-bold border-4 border-yellow-300"
             style={{ fontFamily: 'monospace' }}
           >
@@ -743,7 +743,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
             💀 VOCÊ MORREU 💀
           </h1>
           <Button 
-            onClick={() => onReturnToSheet(0)}
+            onClick={() => onReturnToSheet(0, true)}
             className="bg-red-600 hover:bg-red-700 text-white text-xl px-8 py-4 font-bold"
             style={{ fontFamily: 'monospace' }}
           >
