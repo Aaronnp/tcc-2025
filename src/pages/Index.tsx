@@ -219,6 +219,10 @@ const Index = () => {
               <p className="text-gray-700 font-bold">🔒 Guest 1337</p>
               <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
             </div>
+            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
+              <p className="text-amber-600 font-bold">🔒 CHRONOS</p>
+              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
+            </div>
           </div>
           
           <div className="flex flex-col gap-4">
@@ -260,7 +264,8 @@ const Index = () => {
     );
   }
 
-  // Verifica se está no modo impossível (hardcore ativo na criação)
+  // Verifica se está no modo impossível (hardcore ativo na criação ou aftermatch)
+  // Também verifica se acabou de sair do modo impossível (não mostra botão se isAftermatch estiver ativo)
   const isInHardcoreCreation = character?.hardcore || isAftermatch;
 
   if (!gameStarted) {

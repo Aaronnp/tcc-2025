@@ -9,6 +9,14 @@ import heroStaff from "@/assets/hero-staff.png";
 import heroAxe from "@/assets/hero-axe.png";
 import heroGoku from "@/assets/hero-goku.png";
 import heroSonic from "@/assets/hero-sonic.png";
+import enemySkeleton from "@/assets/enemy-skeleton.png";
+import enemyGoblin from "@/assets/enemy-goblin.png";
+import enemyShadow from "@/assets/enemy-shadow.png";
+import enemyBandit from "@/assets/enemy-bandit.png";
+import enemyUraume from "@/assets/enemy-uraume.png";
+import enemyFly from "@/assets/enemy-fly.png";
+import enemyGuard from "@/assets/enemy-guard.png";
+import enemySoul from "@/assets/enemy-soul.png";
 
 interface CharacterStats {
   nome: string;
@@ -31,6 +39,7 @@ interface EnemyStats {
   poderDeFogo: number;
   vida: number;
   tipoDano: 'forca' | 'poderDeFogo';
+  imagem: string;
 }
 
 interface Props {
@@ -38,6 +47,17 @@ interface Props {
 }
 
 type Phase = 'creation' | 'selection' | 'battle';
+
+const ENEMY_SPRITES: Record<string, string> = {
+  'Esqueleto': enemySkeleton,
+  'Goblin': enemyGoblin,
+  'Sombra': enemyShadow,
+  'Bandido': enemyBandit,
+  'Uraume': enemyUraume,
+  'Mosca': enemyFly,
+  'Guarda': enemyGuard,
+  'Alma': enemySoul,
+};
 
 const WEAPON_SPRITES: Record<string, string> = {
   'Espada': heroSword,
@@ -75,7 +95,8 @@ export default function SandboxMode({ onExit }: Props) {
     inteligencia: 10,
     poderDeFogo: 10,
     vida: 100,
-    tipoDano: 'forca'
+    tipoDano: 'forca',
+    imagem: 'Esqueleto'
   });
 
   const [playerHp, setPlayerHp] = useState(100);
@@ -111,7 +132,8 @@ export default function SandboxMode({ onExit }: Props) {
       inteligencia: 10,
       poderDeFogo: 10,
       vida: 100,
-      tipoDano: 'forca'
+      tipoDano: 'forca',
+      imagem: 'Esqueleto'
     });
   };
 
@@ -238,6 +260,10 @@ export default function SandboxMode({ onExit }: Props) {
     return WEAPON_SPRITES[arma] || heroSword;
   };
 
+  const getEnemySprite = (imagem: string) => {
+    return ENEMY_SPRITES[imagem] || enemySkeleton;
+  };
+
   return (
     <div className="min-h-screen dungeon-bg p-8">
       <div className="max-w-7xl mx-auto">
@@ -356,6 +382,24 @@ export default function SandboxMode({ onExit }: Props) {
                     </Select>
                   </div>
                   <div>
+                    <Label className="text-foreground font-bold">Imagem:</Label>
+                    <Select value={enemyForm.imagem} onValueChange={(v) => setEnemyForm({ ...enemyForm, imagem: v })}>
+                      <SelectTrigger className="bg-input border-2 border-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Esqueleto">Esqueleto</SelectItem>
+                        <SelectItem value="Goblin">Goblin</SelectItem>
+                        <SelectItem value="Sombra">Sombra</SelectItem>
+                        <SelectItem value="Bandido">Bandido</SelectItem>
+                        <SelectItem value="Uraume">Uraume</SelectItem>
+                        <SelectItem value="Mosca">Mosca</SelectItem>
+                        <SelectItem value="Guarda">Guarda</SelectItem>
+                        <SelectItem value="Alma">Alma</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <Label className="text-foreground font-bold">Vida:</Label>
                     <Input
                       type="number"
@@ -411,7 +455,8 @@ export default function SandboxMode({ onExit }: Props) {
                     <h3 className="text-xl font-bold text-red-800 mb-2">Inimigos Criados:</h3>
                     <div className="space-y-2 max-h-32 overflow-y-auto">
                       {createdEnemies.map((enemy, idx) => (
-                        <div key={idx} className="bg-muted p-2 rounded-sm border border-border">
+                        <div key={idx} className="bg-muted p-2 rounded-sm border border-border flex items-center gap-2">
+                          <img src={getEnemySprite(enemy.imagem)} alt={enemy.nome} className="w-8 h-8 object-contain pixelated" style={{ imageRendering: 'pixelated' }} />
                           <span className="text-foreground text-sm">{enemy.nome} (Vida: {enemy.vida})</span>
                         </div>
                       ))}
@@ -444,17 +489,20 @@ export default function SandboxMode({ onExit }: Props) {
                     <div
                       key={idx}
                       onClick={() => setSelectedEnemy(enemy)}
-                      className={`p-4 rounded-sm cursor-pointer transition-all border-2 ${
+                      className={`p-4 rounded-sm cursor-pointer transition-all border-2 flex items-center gap-4 ${
                         selectedEnemy?.nome === enemy.nome
                           ? 'bg-red-200 border-red-600'
                           : 'bg-muted hover:bg-muted/80 border-border'
                       }`}
                     >
-                      <p className="text-foreground font-bold">{enemy.nome}</p>
-                      <p className="text-sm text-muted-foreground">Vida: {enemy.vida} | Força: {enemy.forca} | Destreza: {enemy.destreza}</p>
-                      {selectedEnemy?.nome === enemy.nome && (
-                        <p className="text-red-700 text-xs mt-1 font-bold">*selecionado*</p>
-                      )}
+                      <img src={getEnemySprite(enemy.imagem)} alt={enemy.nome} className="w-12 h-12 object-contain pixelated" style={{ imageRendering: 'pixelated' }} />
+                      <div>
+                        <p className="text-foreground font-bold">{enemy.nome}</p>
+                        <p className="text-sm text-muted-foreground">Vida: {enemy.vida} | Força: {enemy.forca} | Destreza: {enemy.destreza}</p>
+                        {selectedEnemy?.nome === enemy.nome && (
+                          <p className="text-red-700 text-xs mt-1 font-bold">*selecionado*</p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -511,6 +559,14 @@ export default function SandboxMode({ onExit }: Props) {
                 {/* Enemy Side */}
                 <div className="text-center">
                   <h3 className="text-2xl font-bold text-red-800 mb-2">{selectedEnemy.nome}</h3>
+                  <div className="flex justify-center mb-2">
+                    <img 
+                      src={getEnemySprite(selectedEnemy.imagem)} 
+                      alt={selectedEnemy.nome}
+                      className="w-24 h-24 object-contain pixelated"
+                      style={{ imageRendering: 'pixelated' }}
+                    />
+                  </div>
                   <div className="bg-red-100 border-2 border-red-300 rounded-sm p-4">
                     <p className="text-red-900 text-xl font-bold">HP: {enemyHp}/{enemyMaxHp}</p>
                     <div className="w-full bg-red-200 rounded-full h-4 mt-2">

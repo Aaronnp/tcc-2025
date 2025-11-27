@@ -97,7 +97,7 @@ const enemies: Enemy[] = [
 const bosses: Enemy[] = [
   { nome: 'Arkanus, O Guerreiro Perdido', foto: bossArkanus, forca: 8, des: 2, cons: 20, pdf: 3, int: 5, vida: 75, magia: 300 },
   { nome: 'A Sombra Primordial', foto: bossShadow, forca: 6, des: 9999, cons: 0, pdf: 0, int: 10, vida: 50, magia: 500 },
-  { nome: 'Infernus Veylor, O Assasino de Vultos', foto: bossInfernus, forca: 3, des: 10, cons: 43, pdf: 15, int: 15, vida: 215, magia: 350 },
+  { nome: 'Infernus Veylor, O Assasino de Vultos', foto: bossInfernus, forca: 10, des: 10, cons: 43, pdf: 15, int: 15, vida: 215, magia: 350 },
   { nome: 'Aeternus, o Deus das Sombras', foto: bossAeternus, forca: 30, des: 30, cons: 100, pdf: 20, int: 30, vida: 750, magia: 2000 },
 ];
 
@@ -490,10 +490,14 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     }
     
     // Sistema de esquiva do jogador: se o jogador tiver mais destreza, 50% chance de desviar
+    // Sonic SEMPRE desvia de tudo
     let enemyDamage = 0;
     let playerDodged = false;
     
-    if (character.destreza > currentEnemy.des) {
+    const isSonicMode = character.nome.toLowerCase().includes('sonic');
+    if (isSonicMode) {
+      playerDodged = true; // Sonic SEMPRE desvia
+    } else if (character.destreza > currentEnemy.des) {
       playerDodged = Math.random() < 0.5;
     }
     

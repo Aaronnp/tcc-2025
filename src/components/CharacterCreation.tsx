@@ -258,9 +258,14 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
             ⚠️ Você vai voltar para a porta 1, aceita mesmo upar de nível?
           </p>
         )}
-        <p className="text-center mb-6 text-sm">
+        <p className="text-center mb-4 text-sm">
           {isLevelUp ? `Distribua ${pointsToSpend} pontos` : "Crie seu lutador"}
         </p>
+        {!isLevelUp && (
+          <p className={`text-center mb-2 text-sm font-bold ${hellModeActive ? 'text-red-400' : 'text-primary'}`}>
+            🏆 Vitórias: {progress.totalVictories}
+          </p>
+        )}
         {!isLevelUp && (
         <p className={`text-center mb-6 text-xs ${hellModeActive ? 'text-red-300' : ''}`}>
             Você tem {hellModeActive ? '25' : '15'} pontos para distribuir em 5 atributos
