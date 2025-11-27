@@ -31,12 +31,87 @@ const Index = () => {
   const [isAftermatch, setIsAftermatch] = useState(false);
   const [showSandbox, setShowSandbox] = useState(false);
   const [showCharactersTab, setShowCharactersTab] = useState(false);
+  const [testCharacterMode, setTestCharacterMode] = useState<string | null>(null);
   const progress = getGameProgress();
 
   const handleStartGame = (char: Character) => {
     // Check for sandbox unlock cheat
     if (char.nome.toLowerCase() === 'unlocksandbox') {
       setShowSandbox(true);
+      return;
+    }
+    
+    // Check for character test mode: modo(character)
+    const modoMatch = char.nome.toLowerCase().match(/^modo\((.+)\)$/);
+    if (modoMatch) {
+      const characterName = modoMatch[1].toLowerCase();
+      
+      // Create test character based on the name
+      let testChar: Character = { ...char };
+      
+      if (characterName === 'goku') {
+        testChar = {
+          ...char,
+          nome: 'Goku (Teste)',
+          forca: 999,
+          destreza: 999,
+          constituicao: 999,
+          inteligencia: 999,
+          poderDeFogo: 999,
+          vida: 999999,
+          arma: 'Goku',
+        };
+      } else if (characterName === 'sonic') {
+        testChar = {
+          ...char,
+          nome: 'Sonic (Teste)',
+          destreza: 9999,
+          vida: char.constituicao * 2 + 10,
+        };
+      } else if (characterName === 'guerreiro') {
+        testChar = {
+          ...char,
+          nome: 'Guerreiro (Teste)',
+        };
+      } else if (characterName === 'arqueiro') {
+        testChar = {
+          ...char,
+          nome: 'Arqueiro Sombrio (Teste)',
+          destreza: char.destreza + 5,
+          poderDeFogo: char.poderDeFogo + 3,
+        };
+      } else if (characterName === 'mago') {
+        testChar = {
+          ...char,
+          nome: 'Mago das Sombras (Teste)',
+          inteligencia: char.inteligencia + 8,
+          poderDeFogo: char.poderDeFogo + 4,
+        };
+      } else if (characterName === 'paladino') {
+        testChar = {
+          ...char,
+          nome: 'Paladino (Teste)',
+          forca: char.forca + 6,
+          constituicao: char.constituicao + 6,
+          vida: (char.constituicao + 6) * 2 + 10,
+          armadura: char.constituicao + 6 + 10,
+        };
+      } else if (characterName === 'lorde') {
+        testChar = {
+          ...char,
+          nome: 'Lorde das Sombras (Teste)',
+          forca: char.forca + 10,
+          destreza: char.destreza + 10,
+          constituicao: char.constituicao + 10,
+          inteligencia: char.inteligencia + 10,
+          poderDeFogo: char.poderDeFogo + 10,
+          vida: (char.constituicao + 10) * 2 + 10,
+          armadura: char.constituicao + 10 + 10,
+        };
+      }
+      
+      setCharacter(testChar);
+      setGameStarted(true);
       return;
     }
     
@@ -69,27 +144,27 @@ const Index = () => {
 
   if (showCharactersTab) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-8">
-        <div className="bg-black/80 border-4 border-yellow-500 rounded-lg p-8 max-w-2xl">
-          <h1 className="text-5xl font-bold text-yellow-400 mb-6 text-center animate-pulse">
+      <div className="min-h-screen dungeon-bg flex items-center justify-center p-8">
+        <div className="parchment-bg border-4 border-primary rounded-sm p-8 max-w-2xl shadow-2xl">
+          <h1 className="text-5xl font-bold text-primary mb-6 text-center">
             🎭 PERSONAGENS 🎭
           </h1>
-          <p className="text-white text-xl text-center mb-8">
+          <p className="text-foreground text-xl text-center mb-8">
             Esta funcionalidade está em desenvolvimento!
           </p>
-          <p className="text-gray-400 text-center mb-8">
+          <p className="text-muted-foreground text-center mb-8">
             Em breve você poderá desbloquear personagens especiais baseado nas suas conquistas.
           </p>
           
           {/* Preview dos personagens */}
           <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-600 text-center">
-              <p className="text-yellow-400 font-bold">🔒 Goku</p>
-              <p className="text-gray-400 text-sm">Requer 10 vitórias</p>
+            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
+              <p className="text-primary font-bold">🔒 Goku</p>
+              <p className="text-muted-foreground text-sm">Requer 10 vitórias</p>
             </div>
-            <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-600 text-center">
-              <p className="text-blue-400 font-bold">🔒 Sonic</p>
-              <p className="text-gray-400 text-sm">Requer 10 vitórias</p>
+            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
+              <p className="text-blue-700 font-bold">🔒 Sonic</p>
+              <p className="text-muted-foreground text-sm">Requer 10 vitórias</p>
             </div>
           </div>
           
@@ -100,14 +175,20 @@ const Index = () => {
                   setShowCharactersTab(false);
                   setShowSandbox(true);
                 }}
-                className="bg-yellow-600 hover:bg-yellow-500 text-yellow-900 text-xl px-8 py-4 font-bold"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-xl px-8 py-4 font-bold"
               >
                 🎮 SANDBOX
               </Button>
             )}
+            {progress.totalVictories < 3 && (
+              <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
+                <p className="text-muted-foreground font-bold">🔒 SANDBOX</p>
+                <p className="text-muted-foreground text-sm">Requer 3 vitórias ({progress.totalVictories}/3)</p>
+              </div>
+            )}
             <Button
               onClick={() => setShowCharactersTab(false)}
-              className="bg-purple-600 hover:bg-purple-500 text-white text-xl px-8 py-4 font-bold"
+              className="bg-accent hover:bg-accent/90 text-accent-foreground text-xl px-8 py-4 font-bold"
             >
               ⬅️ VOLTAR
             </Button>
@@ -138,21 +219,11 @@ const Index = () => {
         <div className="fixed top-4 left-4 z-50">
           <Button
             onClick={() => setShowCharactersTab(true)}
-            className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-3"
+            className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-6 py-3"
           >
             🎭 PERSONAGENS
           </Button>
         </div>
-        {progress.totalVictories >= 3 && (
-          <div className="fixed top-4 right-4 z-50">
-            <Button
-              onClick={() => setShowSandbox(true)}
-              className="bg-yellow-600 hover:bg-yellow-500 text-yellow-900 font-bold px-6 py-3 text-lg"
-            >
-              SANDBOX
-            </Button>
-          </div>
-        )}
       </div>
     );
   }

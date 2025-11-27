@@ -161,14 +161,14 @@ export default function SandboxMode({ onExit }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+    <div className="min-h-screen dungeon-bg p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-black/80 border-4 border-yellow-500 rounded-lg p-6 mb-8">
-          <h1 className="text-5xl font-bold text-yellow-400 mb-2 text-center animate-pulse">
+        <div className="parchment-bg border-4 border-primary rounded-sm p-6 mb-8 shadow-2xl">
+          <h1 className="text-5xl font-bold text-primary mb-2 text-center">
             🎮 MODO SANDBOX 🎮
           </h1>
-          <p className="text-white text-center">
+          <p className="text-foreground text-center">
             {phase === 'creation' && 'Crie seus personagens e inimigos customizados!'}
             {phase === 'selection' && 'Selecione quem vai lutar!'}
             {phase === 'battle' && 'Batalha em progresso!'}
@@ -180,21 +180,21 @@ export default function SandboxMode({ onExit }: Props) {
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               {/* Create Character */}
-              <div className="bg-black/80 border-4 border-blue-500 rounded-lg p-6">
-                <h2 className="text-3xl font-bold text-blue-400 mb-4 text-center">CRIAR SEU PERSONAGEM</h2>
+              <div className="parchment-bg border-4 border-blue-700 rounded-sm p-6 shadow-xl">
+                <h2 className="text-3xl font-bold text-blue-800 mb-4 text-center">CRIAR SEU PERSONAGEM</h2>
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-white">Nome:</Label>
+                    <Label className="text-foreground font-bold">Nome:</Label>
                     <Input
                       value={characterForm.nome}
                       onChange={(e) => setCharacterForm({ ...characterForm, nome: e.target.value })}
-                      className="bg-gray-800 text-white border-blue-500"
+                      className="bg-input border-2 border-border"
                     />
                   </div>
                   <div>
-                    <Label className="text-white">Tipo de Dano:</Label>
+                    <Label className="text-foreground font-bold">Tipo de Dano:</Label>
                     <Select value={characterForm.tipoDano} onValueChange={(v) => setCharacterForm({ ...characterForm, tipoDano: v as 'forca' | 'poderDeFogo' })}>
-                      <SelectTrigger className="bg-gray-800 text-white border-blue-500">
+                      <SelectTrigger className="bg-input border-2 border-border">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -205,7 +205,12 @@ export default function SandboxMode({ onExit }: Props) {
                   </div>
                   {['forca', 'destreza', 'constituicao', 'inteligencia', 'poderDeFogo'].map((stat) => (
                     <div key={stat}>
-                      <Label className="text-white capitalize">{stat}:</Label>
+                      <Label className="text-foreground font-bold capitalize">
+                        {stat === 'forca' ? 'Força' : 
+                         stat === 'constituicao' ? 'Constituição' : 
+                         stat === 'inteligencia' ? 'Inteligência' :
+                         stat === 'poderDeFogo' ? 'Poder de Fogo' : stat}:
+                      </Label>
                       <Input
                         type="number"
                         value={characterForm[stat as keyof Omit<CharacterStats, 'nome' | 'tipoDano'>]}
@@ -213,32 +218,32 @@ export default function SandboxMode({ onExit }: Props) {
                           ...characterForm,
                           [stat]: parseInt(e.target.value) || 0
                         })}
-                        className="bg-gray-800 text-white border-blue-500"
+                        className="bg-input border-2 border-border"
                       />
                     </div>
                   ))}
-                  <Button onClick={handleCreateCharacter} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold">
+                  <Button onClick={handleCreateCharacter} className="w-full bg-blue-700 hover:bg-blue-600 text-white font-bold">
                     CRIAR PERSONAGEM
                   </Button>
                 </div>
               </div>
 
               {/* Create Enemy */}
-              <div className="bg-black/80 border-4 border-red-500 rounded-lg p-6">
-                <h2 className="text-3xl font-bold text-red-400 mb-4 text-center">CRIAR INIMIGO</h2>
+              <div className="parchment-bg border-4 border-red-700 rounded-sm p-6 shadow-xl">
+                <h2 className="text-3xl font-bold text-red-800 mb-4 text-center">CRIAR INIMIGO</h2>
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-white">Nome:</Label>
+                    <Label className="text-foreground font-bold">Nome:</Label>
                     <Input
                       value={enemyForm.nome}
                       onChange={(e) => setEnemyForm({ ...enemyForm, nome: e.target.value })}
-                      className="bg-gray-800 text-white border-red-500"
+                      className="bg-input border-2 border-border"
                     />
                   </div>
                   <div>
-                    <Label className="text-white">Tipo de Dano:</Label>
+                    <Label className="text-foreground font-bold">Tipo de Dano:</Label>
                     <Select value={enemyForm.tipoDano} onValueChange={(v) => setEnemyForm({ ...enemyForm, tipoDano: v as 'forca' | 'poderDeFogo' })}>
-                      <SelectTrigger className="bg-gray-800 text-white border-red-500">
+                      <SelectTrigger className="bg-input border-2 border-border">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -249,7 +254,13 @@ export default function SandboxMode({ onExit }: Props) {
                   </div>
                   {['forca', 'destreza', 'constituicao', 'inteligencia', 'poderDeFogo', 'vida'].map((stat) => (
                     <div key={stat}>
-                      <Label className="text-white capitalize">{stat}:</Label>
+                      <Label className="text-foreground font-bold capitalize">
+                        {stat === 'forca' ? 'Força' : 
+                         stat === 'constituicao' ? 'Constituição' : 
+                         stat === 'inteligencia' ? 'Inteligência' :
+                         stat === 'poderDeFogo' ? 'Poder de Fogo' : 
+                         stat === 'vida' ? 'Vida' : stat}:
+                      </Label>
                       <Input
                         type="number"
                         value={enemyForm[stat as keyof Omit<EnemyStats, 'nome' | 'tipoDano'>]}
@@ -257,11 +268,11 @@ export default function SandboxMode({ onExit }: Props) {
                           ...enemyForm,
                           [stat]: parseInt(e.target.value) || 0
                         })}
-                        className="bg-gray-800 text-white border-red-500"
+                        className="bg-input border-2 border-border"
                       />
                     </div>
                   ))}
-                  <Button onClick={handleCreateEnemy} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold">
+                  <Button onClick={handleCreateEnemy} className="w-full bg-red-700 hover:bg-red-600 text-white font-bold">
                     CRIAR INIMIGO
                   </Button>
                 </div>
@@ -269,10 +280,10 @@ export default function SandboxMode({ onExit }: Props) {
             </div>
 
             <div className="flex justify-center gap-4">
-              <Button onClick={handleBack} className="bg-gray-600 hover:bg-gray-500 text-white text-xl px-8 py-4 font-bold">
-                ⬅️ VOLTAR PARA O MODO NORMAL
+              <Button onClick={handleBack} className="bg-accent hover:bg-accent/90 text-accent-foreground text-xl px-8 py-4 font-bold">
+                ⬅️ VOLTAR
               </Button>
-              <Button onClick={handleGoToSelection} className="bg-green-600 hover:bg-green-500 text-white text-xl px-8 py-4 font-bold">
+              <Button onClick={handleGoToSelection} className="bg-green-700 hover:bg-green-600 text-white text-xl px-8 py-4 font-bold">
                 IR PARA A SELEÇÃO ➡️
               </Button>
             </div>
@@ -284,23 +295,23 @@ export default function SandboxMode({ onExit }: Props) {
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               {/* Select Enemy */}
-              <div className="bg-black/80 border-4 border-red-500 rounded-lg p-6">
-                <h2 className="text-3xl font-bold text-red-400 mb-4 text-center">Escolher inimigo para lutar contra</h2>
+              <div className="parchment-bg border-4 border-red-700 rounded-sm p-6 shadow-xl">
+                <h2 className="text-3xl font-bold text-red-800 mb-4 text-center">Escolher inimigo para lutar contra</h2>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {createdEnemies.map((enemy, idx) => (
                     <div
                       key={idx}
                       onClick={() => setSelectedEnemy(enemy)}
-                      className={`p-4 rounded-lg cursor-pointer transition-all ${
+                      className={`p-4 rounded-sm cursor-pointer transition-all border-2 ${
                         selectedEnemy?.nome === enemy.nome
-                          ? 'bg-red-600 border-2 border-red-300'
-                          : 'bg-gray-800 hover:bg-gray-700'
+                          ? 'bg-red-200 border-red-600'
+                          : 'bg-muted hover:bg-muted/80 border-border'
                       }`}
                     >
-                      <p className="text-white font-bold">{enemy.nome}</p>
-                      <p className="text-sm text-gray-300">Vida: {enemy.vida} | Força: {enemy.forca}</p>
+                      <p className="text-foreground font-bold">{enemy.nome}</p>
+                      <p className="text-sm text-muted-foreground">Vida: {enemy.vida} | Força: {enemy.forca}</p>
                       {selectedEnemy?.nome === enemy.nome && (
-                        <p className="text-yellow-400 text-xs mt-1">*selecionado*</p>
+                        <p className="text-red-700 text-xs mt-1 font-bold">*selecionado*</p>
                       )}
                     </div>
                   ))}
@@ -308,23 +319,23 @@ export default function SandboxMode({ onExit }: Props) {
               </div>
 
               {/* Select Character */}
-              <div className="bg-black/80 border-4 border-blue-500 rounded-lg p-6">
-                <h2 className="text-3xl font-bold text-blue-400 mb-4 text-center">Escolher personagem criado</h2>
+              <div className="parchment-bg border-4 border-blue-700 rounded-sm p-6 shadow-xl">
+                <h2 className="text-3xl font-bold text-blue-800 mb-4 text-center">Escolher personagem criado</h2>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {createdCharacters.map((char, idx) => (
                     <div
                       key={idx}
                       onClick={() => setSelectedCharacter(char)}
-                      className={`p-4 rounded-lg cursor-pointer transition-all ${
+                      className={`p-4 rounded-sm cursor-pointer transition-all border-2 ${
                         selectedCharacter?.nome === char.nome
-                          ? 'bg-blue-600 border-2 border-blue-300'
-                          : 'bg-gray-800 hover:bg-gray-700'
+                          ? 'bg-blue-200 border-blue-600'
+                          : 'bg-muted hover:bg-muted/80 border-border'
                       }`}
                     >
-                      <p className="text-white font-bold">{char.nome}</p>
-                      <p className="text-sm text-gray-300">Força: {char.forca} | Destreza: {char.destreza}</p>
+                      <p className="text-foreground font-bold">{char.nome}</p>
+                      <p className="text-sm text-muted-foreground">Força: {char.forca} | Destreza: {char.destreza}</p>
                       {selectedCharacter?.nome === char.nome && (
-                        <p className="text-yellow-400 text-xs mt-1">*selecionado*</p>
+                        <p className="text-blue-700 text-xs mt-1 font-bold">*selecionado*</p>
                       )}
                     </div>
                   ))}
@@ -333,10 +344,10 @@ export default function SandboxMode({ onExit }: Props) {
             </div>
 
             <div className="flex justify-center gap-4">
-              <Button onClick={handleBack} className="bg-gray-600 hover:bg-gray-500 text-white text-xl px-8 py-4 font-bold">
-                ⬅️ VOLTAR PARA CRIAÇÃO
+              <Button onClick={handleBack} className="bg-accent hover:bg-accent/90 text-accent-foreground text-xl px-8 py-4 font-bold">
+                ⬅️ VOLTAR
               </Button>
-              <Button onClick={handleGoToBattle} className="bg-green-600 hover:bg-green-500 text-white text-xl px-8 py-4 font-bold">
+              <Button onClick={handleGoToBattle} className="bg-green-700 hover:bg-green-600 text-white text-xl px-8 py-4 font-bold">
                 IR PARA LUTA ⚔️
               </Button>
             </div>
@@ -346,38 +357,38 @@ export default function SandboxMode({ onExit }: Props) {
         {/* Phase 3: Battle */}
         {phase === 'battle' && selectedCharacter && selectedEnemy && (
           <>
-            <div className="bg-black/80 border-4 border-purple-500 rounded-lg p-8 mb-8">
-              <h2 className="text-4xl font-bold text-white mb-6 text-center">
+            <div className="parchment-bg border-4 border-primary rounded-sm p-8 mb-8 shadow-xl">
+              <h2 className="text-4xl font-bold text-foreground mb-6 text-center">
                 {selectedEnemy.nome} VS {selectedCharacter.nome}
               </h2>
               
               <div className="grid grid-cols-2 gap-8 mb-6">
                 <div className="text-center">
-                  <h3 className="text-2xl font-bold text-red-400 mb-2">{selectedEnemy.nome}</h3>
-                  <div className="bg-red-900 rounded-lg p-4">
-                    <p className="text-white text-xl">HP: {enemyHp}/{selectedEnemy.vida}</p>
-                    <div className="w-full bg-gray-700 rounded-full h-4 mt-2">
+                  <h3 className="text-2xl font-bold text-red-800 mb-2">{selectedEnemy.nome}</h3>
+                  <div className="bg-red-100 border-2 border-red-300 rounded-sm p-4">
+                    <p className="text-red-900 text-xl font-bold">HP: {enemyHp}/{selectedEnemy.vida}</p>
+                    <div className="w-full bg-red-200 rounded-full h-4 mt-2">
                       <div 
-                        className="bg-red-500 h-4 rounded-full transition-all"
+                        className="bg-red-600 h-4 rounded-full transition-all"
                         style={{ width: `${(enemyHp / selectedEnemy.vida) * 100}%` }}
                       />
                     </div>
                   </div>
                   <Button
                     disabled
-                    className="mt-4 bg-red-600 text-white font-bold px-8 py-4"
+                    className="mt-4 bg-red-700 text-white font-bold px-8 py-4"
                   >
                     Lutar (lado do inimigo)
                   </Button>
                 </div>
 
                 <div className="text-center">
-                  <h3 className="text-2xl font-bold text-blue-400 mb-2">{selectedCharacter.nome}</h3>
-                  <div className="bg-blue-900 rounded-lg p-4">
-                    <p className="text-white text-xl">HP: {playerHp}/{selectedCharacter.constituicao * 10}</p>
-                    <div className="w-full bg-gray-700 rounded-full h-4 mt-2">
+                  <h3 className="text-2xl font-bold text-blue-800 mb-2">{selectedCharacter.nome}</h3>
+                  <div className="bg-blue-100 border-2 border-blue-300 rounded-sm p-4">
+                    <p className="text-blue-900 text-xl font-bold">HP: {playerHp}/{selectedCharacter.constituicao * 10}</p>
+                    <div className="w-full bg-blue-200 rounded-full h-4 mt-2">
                       <div 
-                        className="bg-blue-500 h-4 rounded-full transition-all"
+                        className="bg-blue-600 h-4 rounded-full transition-all"
                         style={{ width: `${(playerHp / (selectedCharacter.constituicao * 10)) * 100}%` }}
                       />
                     </div>
@@ -385,7 +396,7 @@ export default function SandboxMode({ onExit }: Props) {
                   <Button
                     onClick={handlePlayerAttack}
                     disabled={!isPlayerTurn || playerHp <= 0 || enemyHp <= 0}
-                    className="mt-4 bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4"
+                    className="mt-4 bg-blue-700 hover:bg-blue-600 text-white font-bold px-8 py-4"
                   >
                     Lutar (lado do personagem)
                   </Button>
@@ -393,17 +404,17 @@ export default function SandboxMode({ onExit }: Props) {
               </div>
 
               {/* Battle Log */}
-              <div className="bg-gray-900 rounded-lg p-4 max-h-48 overflow-y-auto">
-                <h4 className="text-yellow-400 font-bold mb-2">Log de Batalha:</h4>
+              <div className="bg-muted border-2 border-border rounded-sm p-4 max-h-48 overflow-y-auto">
+                <h4 className="text-primary font-bold mb-2">Log de Batalha:</h4>
                 {battleLog.map((log, idx) => (
-                  <p key={idx} className="text-white text-sm">{log}</p>
+                  <p key={idx} className="text-foreground text-sm">{log}</p>
                 ))}
               </div>
             </div>
 
             <div className="flex justify-center">
-              <Button onClick={handleBack} className="bg-gray-600 hover:bg-gray-500 text-white text-xl px-8 py-4 font-bold">
-                ⬅️ VOLTAR PARA CRIAÇÃO
+              <Button onClick={handleBack} className="bg-accent hover:bg-accent/90 text-accent-foreground text-xl px-8 py-4 font-bold">
+                ⬅️ VOLTAR
               </Button>
             </div>
           </>
