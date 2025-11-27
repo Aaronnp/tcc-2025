@@ -279,8 +279,8 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       return;
     }
     
-    // Mensagens desmotivadoras no modo inferno a cada 3 portas
-    if (character.hardcore && (currentRoom + 2) % 3 === 0) {
+    // Mensagens desmotivadoras no modo impossível a cada 3 portas
+    if (isInfernoMode && (currentRoom + 2) % 3 === 0) {
       const demoMessages = [
         "Você ainda acredita que pode escapar?",
         "A escuridão cresce a cada passo...",
@@ -289,7 +289,11 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         "Você não deveria estar aqui...",
         "Desistir seria mais fácil...",
         "A morte é inevitável...",
-        "Você está sozinho nesta jornada..."
+        "Você está sozinho nesta jornada...",
+        "Ninguém virá te salvar...",
+        "Cada passo te aproxima da morte...",
+        "Sua alma está condenada...",
+        "O fim está próximo..."
       ];
       const randomMessage = demoMessages[Math.floor(Math.random() * demoMessages.length)];
       setBattleLog(prev => [...prev, `🔥 ${randomMessage}`]);
@@ -369,13 +373,21 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
     // Modo Goku: Kamehameha com morte adiada
     if (isGokuMode) {
+      // Bloqueia ataques enquanto o Kamehameha está ativo
+      if (kamehamehaAnimation) return;
+      
       setKamehamehaAnimation(true);
       setWeaponAnimation('Goku');
+      setAttackCooldown(true);
+      
       const gokuAudio = new Audio('/goku-kamehameha.mp3');
       gokuAudio.volume = 0.5;
       gokuAudio.play().catch(() => {});
       
-      // Aguarda 13 segundos antes de matar o inimigo
+      // Aguarda o áudio terminar (aproximadamente 4 segundos) + 13 segundos antes de matar o inimigo
+      const audioDuration = 4000; // 4 segundos do áudio
+      const deathDelay = 13000; // 13 segundos para morrer
+      
       setTimeout(() => {
         setKamehamehaAnimation(false);
         
@@ -410,10 +422,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         setInBattle(false);
         setCurrentRoom(currentRoom + 1);
         
-        // Cooldown de 3 segundos
-        setAttackCooldown(true);
-        setTimeout(() => setAttackCooldown(false), 3000);
-      }, 13000); // 13 segundos para o inimigo morrer
+        // Libera o cooldown após a ação completa
+        setAttackCooldown(false);
+      }, deathDelay);
       
       return;
     }
@@ -1158,16 +1169,15 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                   <p className="text-sm mb-4">Sala atual: {currentRoom + 1}/{maxRooms}</p>
                   <Button 
                     onClick={advanceRoom}
-                    disabled={currentRoom >= maxRooms - 1}
                     className={`font-bold text-lg px-8 py-4 w-full ${
-                      currentRoom === maxRooms - 1 && isInfernoMode
+                      currentRoom === maxRooms - 1
                         ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
                         : isInfernoMode
                         ? 'bg-red-900 hover:bg-red-800 text-red-100'
                         : 'bg-accent hover:bg-accent/90 text-accent-foreground'
                     }`}
                   >
-                    {currentRoom === maxRooms - 1 && isInfernoMode ? '🚪 ESCAPAR' : '🚪 Avançar Sala'}
+                    {currentRoom === maxRooms - 1 ? '🚪 ESCAPAR' : '🚪 Avançar Sala'}
                   </Button>
                 </div>
               </div>

@@ -171,12 +171,23 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
     oscillator.stop(audioContext.currentTime + 0.1);
   };
 
+  const [logoShaking, setLogoShaking] = useState(false);
+  const [logoRed, setLogoRed] = useState(false);
+  
   const handleLogoClick = () => {
     if (isLevelUp) return;
     
     const newCount = logoClickCount + 1;
     setLogoClickCount(newCount);
     playGlitchSound();
+    
+    // Logo fica vermelho por um tempo e chacoalha toda vez
+    setLogoRed(true);
+    setLogoShaking(true);
+    setTimeout(() => {
+      setLogoRed(false);
+      setLogoShaking(false);
+    }, 500);
     
     // Aumenta o vermelho gradualmente
     setRedIntensity(prev => Math.min(prev + 10, 100));
@@ -236,12 +247,17 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
         <h1 
           className={`text-3xl font-bold text-center mb-2 tracking-wider cursor-pointer select-none glitch-target transition-all ${
             hellModeActive ? 'text-red-500 animate-pulse' : ''
-          } ${logoClickCount > 0 && logoClickCount < 10 ? 'animate-shake' : ''}`}
+          } ${logoShaking ? 'animate-shake' : ''} ${logoRed ? 'text-red-600' : ''}`}
           onClick={handleLogoClick}
           title={!isLevelUp && !hardcoreUnlocked ? `Cliques: ${logoClickCount}/10` : ''}
         >
           {isLevelUp ? "LEVEL UP!" : (hellModeActive ? "💀 MODO IMPOSSÍVEL 💀" : (isAftermatch ? "⚠️ MODO AFTERMATCH ⚠️" : "RPG DAS SOMBRAS"))}
         </h1>
+        {isLevelUp && (
+          <p className={`text-center text-sm mb-2 ${hellModeActive ? 'text-red-400' : 'text-muted-foreground'}`}>
+            ⚠️ Você vai voltar para a porta 1, aceita mesmo upar de nível?
+          </p>
+        )}
         <p className="text-center mb-6 text-sm">
           {isLevelUp ? `Distribua ${pointsToSpend} pontos` : "Crie seu lutador"}
         </p>

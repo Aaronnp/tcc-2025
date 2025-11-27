@@ -41,75 +41,98 @@ const Index = () => {
       return;
     }
     
-    // Check for character test mode: modo(character)
-    const modoMatch = char.nome.toLowerCase().match(/^modo\((.+)\)$/);
-    if (modoMatch) {
-      const characterName = modoMatch[1].toLowerCase();
-      
-      // Create test character based on the name
-      let testChar: Character = { ...char };
-      
-      if (characterName === 'goku') {
-        testChar = {
-          ...char,
-          nome: 'Goku (Teste)',
-          forca: 999,
-          destreza: 999,
-          constituicao: 999,
-          inteligencia: 999,
-          poderDeFogo: 999,
-          vida: 999999,
-          arma: 'Goku',
-        };
-      } else if (characterName === 'sonic') {
-        testChar = {
-          ...char,
-          nome: 'Sonic (Teste)',
-          destreza: 9999,
-          vida: char.constituicao * 2 + 10,
-        };
-      } else if (characterName === 'guerreiro') {
-        testChar = {
-          ...char,
-          nome: 'Guerreiro (Teste)',
-        };
-      } else if (characterName === 'arqueiro') {
-        testChar = {
-          ...char,
-          nome: 'Arqueiro Sombrio (Teste)',
-          destreza: char.destreza + 5,
-          poderDeFogo: char.poderDeFogo + 3,
-        };
-      } else if (characterName === 'mago') {
-        testChar = {
-          ...char,
-          nome: 'Mago das Sombras (Teste)',
-          inteligencia: char.inteligencia + 8,
-          poderDeFogo: char.poderDeFogo + 4,
-        };
-      } else if (characterName === 'paladino') {
-        testChar = {
-          ...char,
-          nome: 'Paladino (Teste)',
-          forca: char.forca + 6,
-          constituicao: char.constituicao + 6,
-          vida: (char.constituicao + 6) * 2 + 10,
-          armadura: char.constituicao + 6 + 10,
-        };
-      } else if (characterName === 'lorde') {
-        testChar = {
-          ...char,
-          nome: 'Lorde das Sombras (Teste)',
-          forca: char.forca + 10,
-          destreza: char.destreza + 10,
-          constituicao: char.constituicao + 10,
-          inteligencia: char.inteligencia + 10,
-          poderDeFogo: char.poderDeFogo + 10,
-          vida: (char.constituicao + 10) * 2 + 10,
-          armadura: char.constituicao + 10 + 10,
-        };
-      }
-      
+    // Check for character test mode: modogoku, modosonic, etc.
+    const nomeLower = char.nome.toLowerCase();
+    
+    if (nomeLower === 'modogoku') {
+      const testChar: Character = {
+        ...char,
+        nome: 'Goku (Teste)',
+        forca: 999,
+        destreza: 999,
+        constituicao: 999,
+        inteligencia: 999,
+        poderDeFogo: 999,
+        vida: 999999,
+        arma: 'Goku',
+      };
+      setCharacter(testChar);
+      setGameStarted(true);
+      return;
+    }
+    
+    if (nomeLower === 'modosonic') {
+      const testChar: Character = {
+        ...char,
+        nome: 'Sonic (Teste)',
+        destreza: 9999,
+        vida: char.constituicao * 2 + 10,
+      };
+      setCharacter(testChar);
+      setGameStarted(true);
+      return;
+    }
+    
+    if (nomeLower === 'modoguerreiro') {
+      const testChar: Character = {
+        ...char,
+        nome: 'Guerreiro (Teste)',
+      };
+      setCharacter(testChar);
+      setGameStarted(true);
+      return;
+    }
+    
+    if (nomeLower === 'modoarqueiro') {
+      const testChar: Character = {
+        ...char,
+        nome: 'Arqueiro Sombrio (Teste)',
+        destreza: char.destreza + 5,
+        poderDeFogo: char.poderDeFogo + 3,
+      };
+      setCharacter(testChar);
+      setGameStarted(true);
+      return;
+    }
+    
+    if (nomeLower === 'modomago') {
+      const testChar: Character = {
+        ...char,
+        nome: 'Mago das Sombras (Teste)',
+        inteligencia: char.inteligencia + 8,
+        poderDeFogo: char.poderDeFogo + 4,
+      };
+      setCharacter(testChar);
+      setGameStarted(true);
+      return;
+    }
+    
+    if (nomeLower === 'modopaladino') {
+      const testChar: Character = {
+        ...char,
+        nome: 'Paladino (Teste)',
+        forca: char.forca + 6,
+        constituicao: char.constituicao + 6,
+        vida: (char.constituicao + 6) * 2 + 10,
+        armadura: char.constituicao + 6 + 10,
+      };
+      setCharacter(testChar);
+      setGameStarted(true);
+      return;
+    }
+    
+    if (nomeLower === 'modolorde') {
+      const testChar: Character = {
+        ...char,
+        nome: 'Lorde das Sombras (Teste)',
+        forca: char.forca + 10,
+        destreza: char.destreza + 10,
+        constituicao: char.constituicao + 10,
+        inteligencia: char.inteligencia + 10,
+        poderDeFogo: char.poderDeFogo + 10,
+        vida: (char.constituicao + 10) * 2 + 10,
+        armadura: char.constituicao + 10 + 10,
+      };
       setCharacter(testChar);
       setGameStarted(true);
       return;
@@ -145,11 +168,11 @@ const Index = () => {
   if (showCharactersTab) {
     return (
       <div className="min-h-screen dungeon-bg flex items-center justify-center p-8">
-        <div className="parchment-bg border-4 border-primary rounded-sm p-8 max-w-2xl shadow-2xl">
+        <div className="parchment-bg border-4 border-primary rounded-sm p-8 max-w-4xl shadow-2xl">
           <h1 className="text-5xl font-bold text-primary mb-6 text-center">
             🎭 PERSONAGENS 🎭
           </h1>
-          <p className="text-foreground text-xl text-center mb-8">
+          <p className="text-foreground text-xl text-center mb-4">
             Esta funcionalidade está em desenvolvimento!
           </p>
           <p className="text-muted-foreground text-center mb-8">
@@ -157,7 +180,7 @@ const Index = () => {
           </p>
           
           {/* Preview dos personagens */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
             <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
               <p className="text-primary font-bold">🔒 Goku</p>
               <p className="text-muted-foreground text-sm">Requer 10 vitórias</p>
@@ -165,6 +188,30 @@ const Index = () => {
             <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
               <p className="text-blue-700 font-bold">🔒 Sonic</p>
               <p className="text-muted-foreground text-sm">Requer 10 vitórias</p>
+            </div>
+            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
+              <p className="text-red-700 font-bold">🔒 Luffy</p>
+              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
+            </div>
+            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
+              <p className="text-purple-700 font-bold">🔒 Sukuna</p>
+              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
+            </div>
+            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
+              <p className="text-green-700 font-bold">🔒 Yi</p>
+              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
+            </div>
+            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
+              <p className="text-cyan-700 font-bold">🔒 Gojo</p>
+              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
+            </div>
+            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
+              <p className="text-red-600 font-bold">🔒 Mario</p>
+              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
+            </div>
+            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
+              <p className="text-gray-700 font-bold">🔒 Guest 1337</p>
+              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
             </div>
           </div>
           
