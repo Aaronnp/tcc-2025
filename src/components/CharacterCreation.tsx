@@ -240,7 +240,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
           onClick={handleLogoClick}
           title={!isLevelUp && !hardcoreUnlocked ? `Cliques: ${logoClickCount}/10` : ''}
         >
-          {isLevelUp ? "LEVEL UP!" : (hellModeActive ? "🔥 RPG DO INFERNO 🔥" : (isAftermatch ? "⚠️ MODO AFTERMATCH ⚠️" : "RPG DAS SOMBRAS"))}
+          {isLevelUp ? "LEVEL UP!" : (hellModeActive ? "💀 MODO IMPOSSÍVEL 💀" : (isAftermatch ? "⚠️ MODO AFTERMATCH ⚠️" : "RPG DAS SOMBRAS"))}
         </h1>
         <p className="text-center mb-6 text-sm">
           {isLevelUp ? `Distribua ${pointsToSpend} pontos` : "Crie seu lutador"}
@@ -354,7 +354,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
                       disabled={!hardcoreUnlocked}
                     />
                     <Label htmlFor="hardcore" className="text-2xl font-bold text-red-400 cursor-pointer animate-pulse">
-                      💀🔥 MODO INFERNO ATIVADO! 🔥💀
+                      💀 MODO IMPOSSÍVEL ATIVADO! 💀
                     </Label>
                   </div>
                   <p className="text-sm text-red-300 font-bold">
@@ -379,7 +379,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
                 : 'bg-accent hover:bg-accent/90 text-accent-foreground'
             }`}
           >
-            {isLevelUp ? "LEVEL UP" : (hellModeActive ? '🔥 ENTRAR NO INFERNO 🔥' : 'Aventura Agora')}
+            {isLevelUp ? "LEVEL UP" : (hellModeActive ? '💀 MODO IMPOSSÍVEL 💀' : 'Aventura Agora')}
           </Button>
         </div>
       </div>
