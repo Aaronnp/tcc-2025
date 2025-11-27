@@ -146,9 +146,15 @@ const Index = () => {
     setCharacter(updatedChar);
   };
 
-  const handleReturnToSheet = (currentRoom: number) => {
+  const handleReturnToSheet = (currentRoom: number, resetCharacter: boolean = false) => {
     setSavedRoom(currentRoom);
     setGameStarted(false);
+    // Se resetCharacter for true (morte ou vitória), reseta o personagem completamente
+    if (resetCharacter) {
+      setCharacter(null);
+      setSelectedCharacterBonus(null);
+      setIsAftermatch(false);
+    }
   };
   
   const handleCharacterSelect = (selectedChar: any) => {
@@ -254,6 +260,9 @@ const Index = () => {
     );
   }
 
+  // Verifica se está no modo impossível (hardcore ativo na criação)
+  const isInHardcoreCreation = character?.hardcore || isAftermatch;
+
   if (!gameStarted) {
     return (
       <div className="relative">
@@ -263,14 +272,17 @@ const Index = () => {
           selectedCharacterBonus={selectedCharacterBonus}
           isAftermatch={isAftermatch}
         />
-        <div className="fixed top-4 left-4 z-50">
-          <Button
-            onClick={() => setShowCharactersTab(true)}
-            className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-6 py-3"
-          >
-            🎭 PERSONAGENS
-          </Button>
-        </div>
+        {/* Esconde o botão PERSONAGENS no modo impossível */}
+        {!isInHardcoreCreation && (
+          <div className="fixed top-4 left-4 z-50">
+            <Button
+              onClick={() => setShowCharactersTab(true)}
+              className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-6 py-3"
+            >
+              🎭 PERSONAGENS
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
