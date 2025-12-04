@@ -146,6 +146,142 @@ All colors MUST be HSL.
   50% { transform: scale(1.5); opacity: 1; filter: hue-rotate(180deg); }
   100% { transform: scale(0.5); opacity: 0; filter: hue-rotate(360deg); }
 }
+
+/* Sukuna Attacks */
+@keyframes sukuna-cleave {
+  0% { transform: translateX(-100px) rotate(-30deg); opacity: 0; filter: brightness(2); }
+  30% { transform: translateX(0) rotate(0); opacity: 1; }
+  100% { transform: translateX(100px) rotate(30deg); opacity: 0; filter: brightness(0.5); }
+}
+
+@keyframes sukuna-dismantle {
+  0%, 100% { opacity: 0; }
+  10% { transform: rotate(0deg); opacity: 1; }
+  30% { transform: rotate(90deg); opacity: 1; }
+  50% { transform: rotate(180deg); opacity: 1; }
+  70% { transform: rotate(270deg); opacity: 1; }
+  90% { transform: rotate(360deg); opacity: 1; }
+}
+
+@keyframes sukuna-flame {
+  0% { transform: scale(0); opacity: 0; filter: hue-rotate(0deg); }
+  50% { transform: scale(1.5); opacity: 1; filter: hue-rotate(-30deg); }
+  100% { transform: scale(2) translateX(50px); opacity: 0; filter: hue-rotate(-60deg); }
+}
+
+@keyframes sukuna-domain {
+  0% { transform: scale(0); opacity: 0; box-shadow: 0 0 0 0 rgba(139, 0, 0, 0.8); }
+  50% { transform: scale(1); opacity: 1; box-shadow: 0 0 50px 20px rgba(139, 0, 0, 0.6); }
+  100% { transform: scale(2); opacity: 0; box-shadow: 0 0 100px 50px rgba(139, 0, 0, 0); }
+}
+
+/* Gojo Attacks */
+@keyframes gojo-blue {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.5); opacity: 1; box-shadow: 0 0 30px 15px rgba(59, 130, 246, 0.8); }
+  100% { transform: scale(3) translateX(50px); opacity: 0; }
+}
+
+@keyframes gojo-red {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 30px 15px rgba(239, 68, 68, 0.8); }
+  100% { transform: scale(2) translateX(40px); opacity: 0; }
+}
+
+@keyframes gojo-purple {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  25% { transform: scale(1) rotate(90deg); opacity: 1; box-shadow: 0 0 50px 25px rgba(147, 51, 234, 0.8); }
+  50% { transform: scale(2) rotate(180deg); opacity: 1; box-shadow: 0 0 80px 40px rgba(147, 51, 234, 0.6); }
+  100% { transform: scale(4) rotate(360deg); opacity: 0; }
+}
+
+@keyframes gojo-infinity {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 20px 10px rgba(6, 182, 212, 0.3); }
+  50% { transform: scale(1.1); box-shadow: 0 0 40px 20px rgba(6, 182, 212, 0.6); }
+}
+
+@keyframes gojo-domain {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(10); opacity: 0; filter: invert(1) hue-rotate(180deg); }
+}
+
+/* Yi Attacks */
+@keyframes yi-counter {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; filter: brightness(2); }
+}
+
+@keyframes yi-talisman {
+  0% { transform: translateY(-50px) rotate(0deg); opacity: 0; }
+  50% { transform: translateY(0) rotate(180deg); opacity: 1; }
+  100% { transform: translateY(0) rotate(360deg); opacity: 1; }
+}
+
+@keyframes yi-explode {
+  0% { transform: scale(0); opacity: 0; }
+  30% { transform: scale(0.5); opacity: 1; }
+  60% { transform: scale(1); opacity: 1; box-shadow: 0 0 50px 25px rgba(255, 165, 0, 0.8); }
+  100% { transform: scale(3); opacity: 0; box-shadow: 0 0 100px 50px rgba(255, 0, 0, 0); }
+}
+
+/* Luffy Gear Animations */
+@keyframes luffy-gear2 {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.3) saturate(1.5) hue-rotate(-10deg); }
+}
+
+@keyframes luffy-gear3 {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+@keyframes luffy-gear4 {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.15); filter: brightness(1.2) contrast(1.2); }
+}
+
+@keyframes luffy-gear5 {
+  0% { filter: grayscale(0) brightness(1); }
+  25% { filter: grayscale(0.5) brightness(1.2); }
+  50% { filter: grayscale(1) brightness(1.5) contrast(1.5); }
+  75% { filter: grayscale(0.5) brightness(1.2); }
+  100% { filter: grayscale(0) brightness(1); }
+}
+
+/* Mario Mushroom */
+@keyframes mario-mushroom {
+  0% { transform: scale(0) rotate(0deg); }
+  50% { transform: scale(1.5) rotate(180deg); }
+  100% { transform: scale(1) rotate(360deg); }
+}
+
+/* Chronos Attacks */
+@keyframes chronos-rewind {
+  0% { transform: rotate(0deg); filter: hue-rotate(0deg); }
+  100% { transform: rotate(-360deg); filter: hue-rotate(-180deg); }
+}
+
+@keyframes chronos-transform {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(0.3); filter: brightness(2) saturate(0); }
+  100% { transform: scale(0.2); filter: brightness(1) saturate(1); }
+}
+
+/* Sonic Speed */
+@keyframes sonic-dodge {
+  0% { transform: translateX(0); opacity: 1; }
+  25% { transform: translateX(-30px); opacity: 0.5; }
+  50% { transform: translateX(30px); opacity: 0.3; }
+  75% { transform: translateX(-15px); opacity: 0.5; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+/* Guest 1337 Block */
+@keyframes block-success {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+  50% { transform: scale(1.1); box-shadow: 0 0 30px 15px rgba(59, 130, 246, 0.6); }
+}
   
   .animate-shake {
     animation: shake 0.3s ease-in-out;
@@ -157,5 +293,94 @@ All colors MUST be HSL.
   
   .animate-fade-in {
     animation: fade-in 0.3s ease-out;
+  }
+
+  /* Special Attack Animations */
+  .animate-sukuna-cleave {
+    animation: sukuna-cleave 0.6s ease-out;
+  }
+  
+  .animate-sukuna-dismantle {
+    animation: sukuna-dismantle 0.8s ease-in-out;
+  }
+  
+  .animate-sukuna-flame {
+    animation: sukuna-flame 0.7s ease-out;
+  }
+  
+  .animate-sukuna-domain {
+    animation: sukuna-domain 1.5s ease-out;
+  }
+  
+  .animate-gojo-blue {
+    animation: gojo-blue 0.8s ease-out;
+  }
+  
+  .animate-gojo-red {
+    animation: gojo-red 0.6s ease-out;
+  }
+  
+  .animate-gojo-purple {
+    animation: gojo-purple 1.2s ease-out;
+  }
+  
+  .animate-gojo-infinity {
+    animation: gojo-infinity 2s ease-in-out infinite;
+  }
+  
+  .animate-gojo-domain {
+    animation: gojo-domain 2s ease-out;
+  }
+  
+  .animate-yi-counter {
+    animation: yi-counter 0.5s ease-in-out;
+  }
+  
+  .animate-yi-talisman {
+    animation: yi-talisman 0.8s ease-out;
+  }
+  
+  .animate-yi-explode {
+    animation: yi-explode 1s ease-out;
+  }
+  
+  .animate-luffy-gear2 {
+    animation: luffy-gear2 1s ease-in-out infinite;
+  }
+  
+  .animate-luffy-gear3 {
+    animation: luffy-gear3 2s ease-in-out infinite;
+  }
+  
+  .animate-luffy-gear4 {
+    animation: luffy-gear4 1.5s ease-in-out infinite;
+  }
+  
+  .animate-luffy-gear5 {
+    animation: luffy-gear5 0.5s ease-in-out infinite;
+  }
+  
+  .animate-mario-mushroom {
+    animation: mario-mushroom 0.6s ease-out;
+  }
+  
+  .animate-chronos-rewind {
+    animation: chronos-rewind 1s ease-in-out;
+  }
+  
+  .animate-chronos-transform {
+    animation: chronos-transform 1.5s ease-out;
+  }
+  
+  .animate-sonic-dodge {
+    animation: sonic-dodge 0.4s ease-in-out;
+  }
+  
+  .animate-block-success {
+    animation: block-success 0.5s ease-in-out;
+  }
+  
+  .animate-kamehameha {
+    animation: kamehameha 2s ease-out;
   }
 }

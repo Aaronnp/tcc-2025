@@ -39,6 +39,8 @@ const Index = () => {
 
   const refreshProgress = () => setProgress(getGameProgress());
 
+  const [characterBeforeLevelUp, setCharacterBeforeLevelUp] = useState<Character | null>(null);
+
   const handleStartGame = (char: Character) => {
     // Check for sandbox unlock cheat
     if (char.nome.toLowerCase() === 'unlocksandbox') {
@@ -182,10 +184,21 @@ const Index = () => {
     setGameStarted(false);
     if (resetCharacter) {
       setCharacter(null);
+      setCharacterBeforeLevelUp(null);
       setSelectedCharacterBonus(null);
       setSelectedSpecialType('normal');
       setIsAftermatch(false);
       refreshProgress();
+    } else if (character) {
+      // Save character before level up in case they want to cancel
+      setCharacterBeforeLevelUp({...character});
+    }
+  };
+
+  const handleCancelLevelUp = () => {
+    if (characterBeforeLevelUp) {
+      setCharacter(characterBeforeLevelUp);
+      setGameStarted(true);
     }
   };
   
@@ -319,6 +332,7 @@ const Index = () => {
           selectedCharacterBonus={selectedCharacterBonus}
           isAftermatch={isAftermatch}
           selectedSpecialType={selectedSpecialType}
+          onCancelLevelUp={character?.pointsToSpend ? handleCancelLevelUp : undefined}
         />
         {/* Esconde o botão PERSONAGENS no modo impossível */}
         {!isInHardcoreCreation && (

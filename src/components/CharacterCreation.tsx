@@ -34,9 +34,10 @@ interface Props {
   };
   isAftermatch?: boolean;
   selectedSpecialType?: string;
+  onCancelLevelUp?: () => void;
 }
 
-export default function CharacterCreation({ onStartGame, existingCharacter, selectedCharacterBonus, isAftermatch, selectedSpecialType = 'normal' }: Props) {
+export default function CharacterCreation({ onStartGame, existingCharacter, selectedCharacterBonus, isAftermatch, selectedSpecialType = 'normal', onCancelLevelUp }: Props) {
   const isLevelUp = !!existingCharacter;
   const [nome, setNome] = useState(existingCharacter?.nome || "");
   const [arma, setArma] = useState(existingCharacter?.arma || "Espada");
@@ -409,6 +410,19 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
           >
             {isLevelUp ? "LEVEL UP" : (hellModeActive ? '💀 MODO IMPOSSÍVEL 💀' : 'Aventura Agora')}
           </Button>
+          
+          {isLevelUp && onCancelLevelUp && (
+            <Button
+              onClick={onCancelLevelUp}
+              className={`w-full font-bold text-lg py-4 mt-2 ${
+                hellModeActive 
+                  ? 'bg-gray-800 hover:bg-gray-700 text-red-300 border-2 border-red-800' 
+                  : 'bg-secondary hover:bg-secondary/90 text-secondary-foreground'
+              }`}
+            >
+              ⬅️ Voltar sem Level Up
+            </Button>
+          )}
         </div>
       </div>
     </div>
