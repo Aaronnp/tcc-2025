@@ -33,9 +33,10 @@ interface Props {
     poderDeFogo?: number;
   };
   isAftermatch?: boolean;
+  selectedSpecialType?: string;
 }
 
-export default function CharacterCreation({ onStartGame, existingCharacter, selectedCharacterBonus, isAftermatch }: Props) {
+export default function CharacterCreation({ onStartGame, existingCharacter, selectedCharacterBonus, isAftermatch, selectedSpecialType = 'normal' }: Props) {
   const isLevelUp = !!existingCharacter;
   const [nome, setNome] = useState(existingCharacter?.nome || "");
   const [arma, setArma] = useState(existingCharacter?.arma || "Espada");
@@ -138,16 +139,22 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
         poderDeFogo: stats.poderDeFogo + (bonusStats.poderDeFogo || 0),
       };
 
-      const character: Character = {
+      // Determine vida baseado no tipo especial
+      let vidaFinal = hardcore || isAftermatch ? 10 + finalStats.constituicao : 10 + finalStats.constituicao * 2;
+      if (isGokuMode) vidaFinal = 999999;
+      if (selectedSpecialType === 'yi') vidaFinal = 5; // Yi sempre tem 5 de vida
+      
+      const character = {
         nome,
         ...finalStats,
-        vida: isGokuMode ? 999999 : (hardcore || isAftermatch ? 10 + finalStats.constituicao : 10 + finalStats.constituicao * 2),
+        vida: vidaFinal,
         armadura: finalStats.constituicao + 10,
         arma: isGokuMode ? 'Goku' : (progress.hasDevilWeapon && hardcore ? 'Diabo' : arma),
         level: 1,
         xp: 0,
         pointsToSpend: finalPoints,
         hardcore: hardcore || isAftermatch,
+        specialType: selectedSpecialType,
       };
 
       onStartGame(character);
