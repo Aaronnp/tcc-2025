@@ -26,6 +26,10 @@ export const saveGameProgress = (progress: GameProgress) => {
   localStorage.setItem('rpg_progress', JSON.stringify(progress));
 };
 
+export const resetGameProgress = () => {
+  localStorage.removeItem('rpg_progress');
+};
+
 export const addVictory = (isHardcore: boolean, isAftermatch: boolean) => {
   const progress = getGameProgress();
   progress.totalVictories++;

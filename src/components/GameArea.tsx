@@ -1,13 +1,28 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { addVictory } from "@/utils/gameProgress";
+import { 
+  getCharacterSprite, 
+  LUFFY_SPRITES,
+  calculateSukunaDamage,
+  getLuffyGearBonus,
+  getLuffyGearCost,
+  calculateGojoDamage,
+  SukunaState,
+  LuffyState,
+  YiState,
+  GojoState,
+  MarioState,
+  Guest1337State,
+  ChronosState
+} from "@/utils/specialCharacters";
 import heroSword from "@/assets/hero-sword.png";
 import heroBow from "@/assets/hero-bow.png";
 import heroStaff from "@/assets/hero-staff.png";
 import heroAxe from "@/assets/hero-axe.png";
 import heroGoku from "@/assets/hero-goku.png";
+import heroSonic from "@/assets/hero-sonic.png";
 import bossAeternus from "@/assets/boss-aeternus.png";
 import bossInfernus from "@/assets/boss-infernus.png";
 import bossShadow from "@/assets/boss-shadow.png";
@@ -41,6 +56,7 @@ interface Character {
   xp: number;
   pointsToSpend: number;
   hardcore?: boolean;
+  specialType?: string;
 }
 
 interface Enemy {
@@ -53,6 +69,7 @@ interface Enemy {
   int: number;
   vida: number;
   magia: number;
+  isBaby?: boolean; // Para Chronos TRANSFORM
 }
 
 interface Props {
@@ -76,7 +93,7 @@ interface Item {
     dano?: number;
   };
   cura?: number;
-  especial?: string; // Para itens especiais como "Mantra das Sombras"
+  especial?: string;
 }
 
 const enemies: Enemy[] = [
@@ -113,19 +130,12 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const [character, setCharacter] = useState(initialCharacter);
   const [currentRoom, setCurrentRoom] = useState(initialRoom);
   
-  // Atualiza a sala atual quando initialRoom mudar (retornando do level up)
   useEffect(() => {
     setCurrentRoom(initialRoom);
   }, [initialRoom]);
-  const [maxRooms] = useState(100);
   
-  // Calcula o checkpoint mais próximo (múltiplo de 10)
-  const [damageAnimation, setDamageAnimation] = useState<{show: boolean, damage: number, x: number, y: number}>({
-    show: false,
-    damage: 0,
-    x: 0,
-    y: 0
-  });
+  const [maxRooms] = useState(100);
+  const [damageAnimation, setDamageAnimation] = useState<{show: boolean, damage: number, x: number, y: number}>({ show: false, damage: 0, x: 0, y: 0 });
   const [showInventoryInBattle, setShowInventoryInBattle] = useState(false);
   const [mantraActive, setMantraActive] = useState(false);
   const [mantraPenalty, setMantraPenalty] = useState({ armadura: 0, ataque: 0 });
@@ -143,12 +153,24 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const [attackCooldown, setAttackCooldown] = useState(false);
   const [kamehamehaAnimation, setKamehamehaAnimation] = useState(false);
   const [weaponAnimation, setWeaponAnimation] = useState<string | null>(null);
+  const [turnCount, setTurnCount] = useState(0);
   
-  const isGokuMode = character.arma === 'Goku';
+  // Special character states
+  const [sukunaState, setSukunaState] = useState<SukunaState>({ desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0 });
+  const [luffyState, setLuffyState] = useState<LuffyState>({ currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false });
+  const [yiState, setYiState] = useState<YiState>({ lives: 9, currentStep: 'counter', hasTalisman: false });
+  const [gojoState, setGojoState] = useState<GojoState>({ azulCooldown: 0, vermelhoCooldown: 0, vazioRoxoCooldown: 0, infinitoCooldown: 0, infinitoTurnsActive: 0, vazioInfinitoUsed: false, enemyStunTurns: 0 });
+  const [marioState, setMarioState] = useState<MarioState>({ mushroomCooldown: 0, mushroomTurnsActive: 0 });
+  const [guest1337State, setGuest1337State] = useState<Guest1337State>({ nextAttackDouble: false });
+  const [chronosState, setChronosState] = useState<ChronosState>({ lastTurnState: null, canRewind: false, transformUsed: false });
+  const [chronosTargetRoom, setChronosTargetRoom] = useState<string>('');
+  
+  const specialType = character.specialType || 'normal';
+  const isGokuMode = specialType === 'goku' || character.arma === 'Goku';
+  const isSonicMode = specialType === 'sonic' || character.nome.toLowerCase().includes('sonic');
   const isDevilWeapon = character.arma === 'Diabo';
   const isInfernoMode = character.hardcore || false;
   
-  // Modificar inimigos no modo AFTERMATCH (3x mais fortes)
   const modifiedEnemies = isAftermatch 
     ? enemies.map(e => ({ ...e, vida: e.vida * 3, forca: e.forca * 2, des: e.des * 2 }))
     : enemies;
@@ -168,56 +190,23 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       
       if (isBossRoom) {
         const bossIndex = Math.min(Math.floor(roomNumber / 25) - 1, modifiedBosses.length - 1);
-        return {
-          enemy: { ...modifiedBosses[bossIndex] },
-          cleared: false,
-          isBoss: true,
-          chest: null,
-        };
+        return { enemy: { ...modifiedBosses[bossIndex] }, cleared: false, isBoss: true, chest: null };
       }
       
-      // Baús especiais em salas específicas
       if (roomNumber === 45) {
-        return {
-          enemy: null,
-          cleared: false,
-          isBoss: false,
-          chest: {
-            nome: 'Mantra das Sombras',
-            tipo: 'especial' as const,
-            especial: 'mantra_sombras',
-          },
-        };
+        return { enemy: null, cleared: false, isBoss: false, chest: { nome: 'Mantra das Sombras', tipo: 'especial' as const, especial: 'mantra_sombras' } };
       }
       
       if (roomNumber === 70) {
-        return {
-          enemy: null,
-          cleared: false,
-          isBoss: false,
-          chest: {
-            nome: 'Armadura das Sombras',
-            tipo: 'armadura' as const,
-            bonus: { armadura: 10 },
-          },
-        };
+        return { enemy: null, cleared: false, isBoss: false, chest: { nome: 'Armadura das Sombras', tipo: 'armadura' as const, bonus: { armadura: 10 } } };
       }
       
       if (roomNumber === 98) {
-        return {
-          enemy: null,
-          cleared: false,
-          isBoss: false,
-          chest: {
-            nome: 'Armadura de Luz',
-            tipo: 'armadura' as const,
-            bonus: { armadura: 25 },
-          },
-        };
+        return { enemy: null, cleared: false, isBoss: false, chest: { nome: 'Armadura de Luz', tipo: 'armadura' as const, bonus: { armadura: 25 } } };
       }
       
-      const hasEnemy = Math.random() < 0.3; // 30% chance de inimigo
-      const hasChest = !hasEnemy && Math.random() < 0.15; // 15% chance de baú se não tiver inimigo
+      const hasEnemy = Math.random() < 0.3;
+      const hasChest = !hasEnemy && Math.random() < 0.15;
       
       return {
         enemy: hasEnemy ? { ...modifiedEnemies[Math.floor(Math.random() * modifiedEnemies.length)] } : null,
@@ -235,23 +224,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     const tipo = itemTypes[Math.floor(Math.random() * itemTypes.length)];
     
     if (tipo === 'arma') {
-      return {
-        nome: `Arma Mágica +${Math.floor(Math.random() * 5) + 1}`,
-        tipo: 'arma',
-        bonus: {
-          forca: Math.floor(Math.random() * 3) + 1,
-          poderDeFogo: Math.floor(Math.random() * 3) + 1,
-        },
-      };
+      return { nome: `Arma Mágica +${Math.floor(Math.random() * 5) + 1}`, tipo: 'arma', bonus: { forca: Math.floor(Math.random() * 3) + 1, poderDeFogo: Math.floor(Math.random() * 3) + 1 } };
     } else {
-      return {
-        nome: `Armadura +${Math.floor(Math.random() * 5) + 1}`,
-        tipo: 'armadura',
-        bonus: {
-          armadura: Math.floor(Math.random() * 10) + 5,
-          constituicao: Math.floor(Math.random() * 2) + 1,
-        },
-      };
+      return { nome: `Armadura +${Math.floor(Math.random() * 5) + 1}`, tipo: 'armadura', bonus: { armadura: Math.floor(Math.random() * 10) + 5, constituicao: Math.floor(Math.random() * 2) + 1 } };
     }
   };
 
@@ -259,17 +234,89 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-    
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
-    
     oscillator.frequency.value = 200;
     oscillator.type = 'square';
     gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-    
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.3);
+  };
+
+  // Advance turn and handle special character effects
+  const advanceTurn = () => {
+    setTurnCount(prev => prev + 1);
+    
+    // Sukuna cooldowns
+    if (specialType === 'sukuna') {
+      setSukunaState(prev => ({
+        desmantelarCooldown: Math.max(0, prev.desmantelarCooldown - 1),
+        clevarCooldown: Math.max(0, prev.clevarCooldown - 1),
+        fugaCooldown: Math.max(0, prev.fugaCooldown - 1),
+        santuarioCooldown: Math.max(0, prev.santuarioCooldown - 1),
+      }));
+    }
+    
+    // Luffy gear effects
+    if (specialType === 'luffy' && luffyState.currentGear > 0) {
+      let newHp = character.vida;
+      const gear = luffyState.currentGear;
+      
+      if (gear === 2) newHp -= 3;
+      if (gear === 3) newHp -= 5;
+      
+      setLuffyState(prev => {
+        const newTurns = prev.gearTurnsActive + 1;
+        
+        // Gear 4: 3 turnos depois stun 2
+        if (gear === 4 && newTurns >= 3) {
+          setBattleLog(p => [...p, '💨 Gear 4 desativou! Você está exausto por 2 turnos!']);
+          return { ...prev, currentGear: 0, gearTurnsActive: 0, stunTurns: 2 };
+        }
+        
+        // Gear 5: 3 turnos depois stun 10
+        if (gear === 5 && newTurns >= 3) {
+          setBattleLog(p => [...p, '💨 Gear 5 desativou! Você está completamente exausto por 10 turnos!']);
+          return { ...prev, currentGear: 0, gearTurnsActive: 0, stunTurns: 10 };
+        }
+        
+        return { ...prev, gearTurnsActive: newTurns };
+      });
+      
+      if (newHp !== character.vida) {
+        const updatedChar = { ...character, vida: Math.max(0, newHp) };
+        setCharacter(updatedChar);
+        onCharacterUpdate(updatedChar);
+        setBattleLog(p => [...p, `💔 Gear ${gear} drenou ${gear === 2 ? 3 : 5} de vida!`]);
+      }
+    }
+    
+    // Luffy stun turns
+    if (specialType === 'luffy' && luffyState.stunTurns > 0) {
+      setLuffyState(prev => ({ ...prev, stunTurns: prev.stunTurns - 1 }));
+    }
+    
+    // Gojo cooldowns and effects
+    if (specialType === 'gojo') {
+      setGojoState(prev => ({
+        ...prev,
+        azulCooldown: Math.max(0, prev.azulCooldown - 1),
+        vermelhoCooldown: Math.max(0, prev.vermelhoCooldown - 1),
+        vazioRoxoCooldown: Math.max(0, prev.vazioRoxoCooldown - 1),
+        infinitoCooldown: Math.max(0, prev.infinitoCooldown - 1),
+        infinitoTurnsActive: Math.max(0, prev.infinitoTurnsActive - 1),
+        enemyStunTurns: Math.max(0, prev.enemyStunTurns - 1),
+      }));
+    }
+    
+    // Mario mushroom effects
+    if (specialType === 'mario') {
+      setMarioState(prev => ({
+        mushroomCooldown: Math.max(0, prev.mushroomCooldown - 1),
+        mushroomTurnsActive: Math.max(0, prev.mushroomTurnsActive - 1),
+      }));
+    }
   };
 
   const advanceRoom = () => {
@@ -279,24 +326,16 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       return;
     }
     
-    // Mensagens desmotivadoras no modo impossível a cada 3 portas
     if (isInfernoMode && (currentRoom + 2) % 3 === 0) {
       const demoMessages = [
-        "Você ainda acredita que pode escapar?",
-        "A escuridão cresce a cada passo...",
-        "Suas forças estão se esgotando...",
-        "O inferno não tem piedade...",
-        "Você não deveria estar aqui...",
-        "Desistir seria mais fácil...",
-        "A morte é inevitável...",
-        "Você está sozinho nesta jornada...",
-        "Ninguém virá te salvar...",
-        "Cada passo te aproxima da morte...",
-        "Sua alma está condenada...",
-        "O fim está próximo..."
+        "Você ainda acredita que pode escapar?", "A escuridão cresce a cada passo...",
+        "Suas forças estão se esgotando...", "O inferno não tem piedade...",
+        "Você não deveria estar aqui...", "Desistir seria mais fácil...",
+        "A morte é inevitável...", "Você está sozinho nesta jornada...",
+        "Ninguém virá te salvar...", "Cada passo te aproxima da morte...",
+        "Sua alma está condenada...", "O fim está próximo..."
       ];
-      const randomMessage = demoMessages[Math.floor(Math.random() * demoMessages.length)];
-      setBattleLog(prev => [...prev, `🔥 ${randomMessage}`]);
+      setBattleLog(prev => [...prev, `🔥 ${demoMessages[Math.floor(Math.random() * demoMessages.length)]}`]);
     }
 
     playDoorSound();
@@ -306,6 +345,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     if (room.enemy && !room.cleared) {
       setCurrentEnemy({ ...room.enemy });
       setInBattle(true);
+      setTurnCount(0);
       if (room.isBoss) {
         setBattleLog([`🔥 BOSS APARECEU: ${room.enemy.nome}!`]);
         setStory(`Um chefe poderoso bloqueia seu caminho: ${room.enemy.nome}!`);
@@ -313,31 +353,18 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         setBattleLog([`⚔️ Um ${room.enemy.nome} apareceu!`]);
       }
     } else if (room.chest) {
-      const potion: Item = {
-        nome: 'Poção de Vida',
-        tipo: 'pocao',
-        cura: 20 + Math.floor(Math.random() * 30),
-      };
+      const potion: Item = { nome: 'Poção de Vida', tipo: 'pocao', cura: 20 + Math.floor(Math.random() * 30) };
       
-      // Adiciona itens especiais das salas 70 e 98
       if (nextRoom + 1 === 70) {
-        const shadowWeapon: Item = {
-          nome: 'Arma das Sombras',
-          tipo: 'arma',
-          bonus: { dano: 15 },
-        };
-        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou um baú com ${room.chest.nome}, Arma das Sombras e uma Poção de Vida! 📦`]);
+        const shadowWeapon: Item = { nome: 'Arma das Sombras', tipo: 'arma', bonus: { dano: 15 } };
+        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou ${room.chest.nome}, Arma das Sombras e uma Poção!`]);
         setInventory(prev => [...prev, room.chest!, shadowWeapon, potion]);
       } else if (nextRoom + 1 === 98) {
-        const lightWeapon: Item = {
-          nome: 'Arma de Luz',
-          tipo: 'arma',
-          bonus: { dano: 30 },
-        };
-        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou um baú com ${room.chest.nome}, Arma de Luz e uma Poção de Vida! 📦`]);
+        const lightWeapon: Item = { nome: 'Arma de Luz', tipo: 'arma', bonus: { dano: 30 } };
+        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou ${room.chest.nome}, Arma de Luz e uma Poção!`]);
         setInventory(prev => [...prev, room.chest!, lightWeapon, potion]);
       } else {
-        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou um baú com ${room.chest.nome} e uma Poção de Vida! 📦`]);
+        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou ${room.chest.nome} e uma Poção!`]);
         setInventory(prev => [...prev, room.chest!, potion]);
       }
       
@@ -348,32 +375,136 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     }
   };
 
+  // Chronos: teleport to room
+  const chronosTeleport = () => {
+    const targetRoom = parseInt(chronosTargetRoom) - 1;
+    if (isNaN(targetRoom) || targetRoom < 0 || targetRoom >= maxRooms) {
+      setBattleLog(prev => [...prev, '❌ Sala inválida!']);
+      return;
+    }
+    setCurrentRoom(targetRoom);
+    setBattleLog([`⏰ CHRONOS teleportou para a sala ${targetRoom + 1}!`]);
+    setChronosTargetRoom('');
+  };
+
   const getTotalStats = () => {
     const weaponBonus = equippedWeapon?.bonus || {};
     const armorBonus = equippedArmor?.bonus || {};
     const devilBonus = isDevilWeapon ? 30 : 0;
     
+    // Luffy gear bonus
+    let gearBonus = { forca: 0, destreza: 0 };
+    if (specialType === 'luffy' && Number(luffyState.currentGear) > 0) {
+      gearBonus = getLuffyGearBonus(luffyState.currentGear);
+    }
+    
+    // Mario mushroom bonus
+    let marioBonus = 0;
+    if (specialType === 'mario' && marioState.mushroomTurnsActive > 0) {
+      marioBonus = 15;
+    }
+    
     return {
-      forca: character.forca + (weaponBonus.forca || 0) + (armorBonus.forca || 0) - mantraPenalty.ataque,
+      forca: character.forca + (weaponBonus.forca || 0) + (armorBonus.forca || 0) - mantraPenalty.ataque + gearBonus.forca,
       poderDeFogo: character.poderDeFogo + (weaponBonus.poderDeFogo || 0) + (armorBonus.poderDeFogo || 0),
       armadura: character.armadura + (armorBonus.armadura || 0) - mantraPenalty.armadura,
-      danoExtra: (equippedWeapon?.bonus?.dano || 0) + devilBonus,
+      danoExtra: (equippedWeapon?.bonus?.dano || 0) + devilBonus + marioBonus,
+      destreza: character.destreza + gearBonus.destreza,
     };
   };
-  
-  const playAttackSound = () => {
-    const audio = new Audio();
-    audio.volume = 0.3;
-    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFQxMouLvuGccCDyT2/LPejMGKH7M8t2SRwsXYrrq7qZXGBNPpuPxt2cdCj6V3fLRfzYHK4DN8+CWSwsZZbzt7atbGhNQqOXyt2kdC0CY3/PSgjoILYLS9OCYTgwacLvv87BgGxRSqubztmoeC0KZ4PTTgz0IM4TU9eKbUQ0ecL3w87RiFBVUq+j0tWoeC0Sa4PXVhkAJNYbV9eOdUw8fcr7x9LNiFRVWrOn0tmwfDEOb4PXXiEMKOIjX9uSfVRAfd8Dx9bNjFRZYren1uG0gDUSc4PbYi0QKO4nZ9+WhVhEheb/y9rRkFRZZrurxubAgDkSd4fbajkULPIva+OakWBEjeb/z9rVlFhdaqurwu7EhDkWe4vfcj0cLPozb+OelWhIkeb/z9rVlFhdbrurwvLIiDkaf4vfcj0cLPozc+OilWxIkesDz97ZmFxdbrurwvLMiD0af4/jdkUkMQI3d+OmmXRMlfMD0+LdnFxhcr+vwvbMjD0eg4/jek0oMQI7d+eqnXhMmfMH0+LdoGBhdr+vxvrQjEEig4/nflEsNQY/e+eqoXxQmfcH0+bhoGBldr+zxv7QkEEih5PnglUwNQpDe+uupYBQnfsL1+rhoGBldr+zyv7UlEUmi5PrhlUwNQ5Df+uuqYRUnfsL1+rloGRpes+zzwLYmEkqj5frhl00ORJHg++urYxYofs L1+rpqGhlfsuv0wbYmE0qk5fvimE4ORZLh++ytZBYpf8P2+7pqGxlfs+v1wrUmFEqk5vvimU4PRpPi++yuZRYpf8P2+7trHBlfsuv1w7YnFkul5/zjmk4PSJPi/O2uZRYqgMT3/LtrHRpgs+v2xLcnF0ul5/zkm08PS5Tj/O6vZhcrgsT3/LxsHhpht+z2xLcnF0yl6P3km1APTJXk/e+wZxcrgsX4/bxsHxphuOz2xbgoGEyo6P7lnFEQTJXl/vCxaBcsgsX5/b1tIBphue73xbgpGU2p6f3lnVEQTZXl/vCyaBcsgsX5/b5tIBthu+/3xrgrGU6q6f3lnlEQTpbm/vCzaBgtg8X5/r1uIBthu+/4x7krGk6q6v7mnlIRTpbm/vG0aRgugsb5/r5uIRxivPD4x7ksG06r6v7mn1IRTpfn//G1ahgug8b6/75vIhxjvPD4yLotG0+r6//noFIRT5fn//K2ahkvhMf6/r9wIxxjvPD5yLouHE+s6//ooVMST5jo//K3axkvhcf6/sBwJB1kvfH5yLovHFCs7P/poVMSUJjo//O4bBowhs f7/sJxJB1lvfH6ybovHVGt7P/qolMSUJjo//O5bBowhs/7/sJxJB5lvvH6y7sxHVKt7P/ro1QTUJnp//S6bRowh8/8/8NyJR5mvvL6zLsxHlKu7f/spFQTUZnp//S7bxsxh9D8/8NyJR5mvvL6zLwyHlKu7f/spVUTUZnq//W8bxsyiNH9/8RzJh9nvvL7zbwyH1Ow7v/tplYUUpnq//a9cBsyiNH9/8V0Jx9nv/P7z70zH1Sw7//tp1cUU5rr//a+cRwziNH+/8V0KCBoevP70r41IFSx7//urFgUVJrr//e/chsziNL+/8V0KCBpf/P8078 1IVSx8P/vrVkVVZvs//fAcxwziNL+/8V1KCBpgPP80781IVWy8P/wsVoVVZvs//fAdBwziNL+/8Z1KCBqgfP80sA2IlWy8P/wsVoWVpzt//fBdBw0iNP//8Z1KCBqgfT90sA2IlWy8P/wsVsWVpzt//fBdBw0iNP//8Z1KCBqgfT90sA2IlWy8f/xsl0WVpzt//fCdRw0iNP//8d2KCBqgfT+08E3I1ay8f/xsl0XV5zu//jCdRw0idP//8d2KSBqgfT+08E3I1az8f/ysl4XV5zu//jDdRw0idT//8d2KSBqgfT+08E3I1az8f/ysl4XV5zu//jDdRw0idT//8d2KSBqgfT+08E3I1az8f/ysl4XV5zu//jDdRw0idT//8d2KSBqgfT+08E3I1az8f/ysl4XV5zu//jDdRw0idT//8d2KSBqgfT+08E3I1az8f/ysl4XV5zu//jDdRw0idT//8d2KSBqgfT+08E3I1az8f/ysl4XV5zu//jDdRw0idT//8d2KSBqgfT+08E3I1az8f/ysl4XV5zu//jDdRw0idT//8d2KQ==';
-    audio.play().catch(() => {});
+
+  const handleEnemyDeath = () => {
+    const xpGained = 100;
+    const newXP = character.xp + xpGained;
+    const xpNeeded = character.level * 100;
+    let newLevel = character.level;
+    let newPointsToSpend = character.pointsToSpend;
+    
+    if (newXP >= xpNeeded) {
+      newLevel++;
+      newPointsToSpend++;
+      setBattleLog(prev => [...prev, `🎯 Você derrotou ${currentEnemy!.nome}! +${xpGained} XP`, `🎊 LEVEL UP! Nível ${newLevel}!`]);
+    } else {
+      setBattleLog(prev => [...prev, `🎯 Você derrotou ${currentEnemy!.nome}! +${xpGained} XP`]);
+    }
+    
+    const updatedChar = { 
+      ...character, 
+      xp: newXP >= xpNeeded ? newXP - xpNeeded : newXP,
+      level: newLevel,
+      pointsToSpend: newPointsToSpend
+    };
+    setCharacter(updatedChar);
+    onCharacterUpdate(updatedChar);
+    
+    const updatedRooms = [...rooms];
+    updatedRooms[currentRoom + 1].cleared = true;
+    setRooms(updatedRooms);
+    setCurrentEnemy(null);
+    setInBattle(false);
+    setCurrentRoom(currentRoom + 1);
+    
+    // Remove mantra after boss
+    if (mantraActive) {
+      setInventory(prev => prev.filter(item => item.especial !== 'mantra_sombras'));
+      setMantraActive(false);
+    }
+  };
+
+  const handlePlayerDeath = () => {
+    // Yi has 9 lives
+    if (specialType === 'yi' && yiState.lives > 1) {
+      setYiState(prev => ({ ...prev, lives: prev.lives - 1 }));
+      const updatedChar = { ...character, vida: 5 };
+      setCharacter(updatedChar);
+      onCharacterUpdate(updatedChar);
+      setBattleLog(prev => [...prev, `💀 Yi morreu mas renasceu! Vidas restantes: ${yiState.lives - 1}`]);
+      return false;
+    }
+    
+    setBattleLog(prev => [...prev, `💀 Você foi derrotado! Game Over.`]);
+    const updatedChar = { ...character, vida: 0 };
+    setCharacter(updatedChar);
+    onCharacterUpdate(updatedChar);
+    setInBattle(false);
+    return true;
+  };
+
+  const dealDamageToEnemy = (damage: number, message: string) => {
+    if (!currentEnemy) return;
+    
+    // Chronos TRANSFORM: enemy is baby
+    if (currentEnemy.isBaby) {
+      damage = 999999;
+    }
+    
+    const newEnemyHp = currentEnemy.vida - damage;
+    setBattleLog(prev => [...prev, message]);
+    
+    if (newEnemyHp <= 0) {
+      handleEnemyDeath();
+    } else {
+      setCurrentEnemy({ ...currentEnemy, vida: newEnemyHp });
+    }
   };
 
   const attack = () => {
     if (!currentEnemy || !inBattle || attackCooldown) return;
+    
+    // Luffy stun check
+    if (specialType === 'luffy' && luffyState.stunTurns > 0) {
+      setBattleLog(prev => [...prev, `😵 Você está exausto! ${luffyState.stunTurns} turnos restantes.`]);
+      advanceTurn();
+      return;
+    }
+    
+    // Gojo enemy stun check
+    if (specialType === 'gojo' && gojoState.enemyStunTurns > 0) {
+      setBattleLog(prev => [...prev, `🔮 O inimigo está paralisado no Vazio Infinito!`]);
+    }
 
-    // Modo Goku: Kamehameha com morte adiada
+    // Goku Mode
     if (isGokuMode) {
-      // Bloqueia ataques enquanto o Kamehameha está ativo
       if (kamehamehaAnimation) return;
       
       setKamehamehaAnimation(true);
@@ -384,235 +515,306 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       gokuAudio.volume = 0.5;
       gokuAudio.play().catch(() => {});
       
-      // Aguarda o áudio terminar (aproximadamente 4 segundos) + 13 segundos antes de matar o inimigo
-      const audioDuration = 4000; // 4 segundos do áudio
-      const deathDelay = 13000; // 13 segundos para morrer
-      
       setTimeout(() => {
         setKamehamehaAnimation(false);
-        
-        // Mata o inimigo instantaneamente no modo Goku
-        const xpGained = 100;
-        const newXP = character.xp + xpGained;
-        const xpNeeded = character.level * 100;
-        let newLevel = character.level;
-        let newPointsToSpend = character.pointsToSpend;
-        
-        if (newXP >= xpNeeded) {
-          newLevel++;
-          newPointsToSpend++;
-          setBattleLog(prev => [...prev, `⚡ KAMEHAMEHA! ${currentEnemy.nome} foi obliterado! +${xpGained} XP`, `🎊 LEVEL UP! Agora você é nível ${newLevel}!`]);
-        } else {
-          setBattleLog(prev => [...prev, `⚡ KAMEHAMEHA! ${currentEnemy.nome} foi obliterado! +${xpGained} XP`]);
-        }
-        
-        const updatedChar = { 
-          ...character, 
-          xp: newXP >= xpNeeded ? newXP - xpNeeded : newXP,
-          level: newLevel,
-          pointsToSpend: newPointsToSpend
-        };
-        setCharacter(updatedChar);
-        onCharacterUpdate(updatedChar);
-        
-        const updatedRooms = [...rooms];
-        updatedRooms[currentRoom + 1].cleared = true;
-        setRooms(updatedRooms);
-        setCurrentEnemy(null);
-        setInBattle(false);
-        setCurrentRoom(currentRoom + 1);
-        
-        // Libera o cooldown após a ação completa
+        handleEnemyDeath();
         setAttackCooldown(false);
-      }, deathDelay);
+      }, 17000);
       
       return;
     }
 
-    // Cooldown de 3 segundos
     setAttackCooldown(true);
     setTimeout(() => setAttackCooldown(false), 3000);
 
-    // Animação de ataque por arma
     setAttackAnimation(true);
     setWeaponAnimation(character.arma);
-    setTimeout(() => {
-      setAttackAnimation(false);
-      setWeaponAnimation(null);
-    }, 1000);
+    setTimeout(() => { setAttackAnimation(false); setWeaponAnimation(null); }, 1000);
 
     const stats = getTotalStats();
     
-    // Verificar se tem Mantra das Sombras para atacar o segundo boss
-    const hasMantraDosSombras = inventory.some(item => item.especial === 'mantra_sombras');
-    
-    // Se for o segundo boss (A Sombra Primordial), ela desvia de TUDO exceto se usar a Mantra
+    // Sombra Primordial check
+    const hasMantra = inventory.some(item => item.especial === 'mantra_sombras');
     if (currentEnemy.nome === 'A Sombra Primordial' && !mantraActive) {
       setBattleLog(prev => [
         ...prev,
-        `💨 A Sombra Primordial desviou do seu ataque! Ela é intangível...`,
-        hasMantraDosSombras ? `💡 Use a Mantra das Sombras no inventário para poder atacá-la!` : `⚠️ Você precisa encontrar a Mantra das Sombras (Sala 45) para derrotá-la!`,
+        `💨 A Sombra Primordial desviou do seu ataque!`,
+        hasMantra ? `💡 Use a Mantra das Sombras!` : `⚠️ Encontre a Mantra (Sala 45)!`,
       ]);
       
-      // Inimigo ataca de volta
-      const enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
-      const newPlayerHp = character.vida - enemyDamage;
-      
-      setBattleLog(prev => [...prev, `💥 A Sombra Primordial causou ${enemyDamage} de dano!`]);
-      
-      if (newPlayerHp <= 0) {
-        setBattleLog(prev => [...prev, `💀 Você foi derrotado! Game Over.`]);
-        const updatedChar = { ...character, vida: 0 };
-        setCharacter(updatedChar);
-        onCharacterUpdate(updatedChar);
-        setInBattle(false);
-      } else {
-        const updatedChar = { ...character, vida: newPlayerHp };
-        setCharacter(updatedChar);
-        onCharacterUpdate(updatedChar);
-      }
-      return;
-    }
-    
-    // Se usar arco, usa poder de fogo ao invés de força
-    const attackStat = character.arma === 'Arco' ? stats.poderDeFogo : stats.forca;
-    
-    // Adicionar bônus de dano da arma equipada + Arma do Diabo
-    const weaponDamageBonus = stats.danoExtra;
-    
-    // Inteligência adiciona ao dado
-    const playerDamage = Math.max(1, attackStat + stats.poderDeFogo + character.inteligencia + weaponDamageBonus + Math.floor(Math.random() * 6));
-    
-    // Sistema de esquiva: se o INIMIGO tiver mais destreza, pode desviar
-    let enemyDodged = false;
-    if (currentEnemy.des > character.destreza) {
-      enemyDodged = Math.random() < 0.3; // 30% de chance de desviar
-    }
-    
-    // Sistema de esquiva do jogador: se o jogador tiver mais destreza, 50% chance de desviar
-    // Sonic SEMPRE desvia de tudo
-    let enemyDamage = 0;
-    let playerDodged = false;
-    
-    const isSonicMode = character.nome.toLowerCase().includes('sonic');
-    if (isSonicMode) {
-      playerDodged = true; // Sonic SEMPRE desvia
-    } else if (character.destreza > currentEnemy.des) {
-      playerDodged = Math.random() < 0.5;
-    }
-    
-    if (!playerDodged) {
-      enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
-    }
-
-    if (enemyDodged) {
-      setBattleLog(prev => [
-        ...prev,
-        `💨 ${currentEnemy.nome} desviou do seu ataque!`,
-      ]);
-      
-      if (!playerDodged) {
+      // Enemy attacks back
+      if (!(specialType === 'gojo' && gojoState.infinitoTurnsActive > 0)) {
+        const enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
         const newPlayerHp = character.vida - enemyDamage;
-        setBattleLog(prev => [...prev, `💥 Inimigo causou ${enemyDamage} de dano!`]);
+        setBattleLog(prev => [...prev, `💥 A Sombra causou ${enemyDamage} de dano!`]);
         
         if (newPlayerHp <= 0) {
-          setBattleLog(prev => [...prev, `💀 Você foi derrotado! Game Over.`]);
-          const updatedChar = { ...character, vida: 0 };
-          setCharacter(updatedChar);
-          onCharacterUpdate(updatedChar);
-          setInBattle(false);
+          handlePlayerDeath();
         } else {
           const updatedChar = { ...character, vida: newPlayerHp };
           setCharacter(updatedChar);
           onCharacterUpdate(updatedChar);
         }
-      } else {
-        setBattleLog(prev => [...prev, `💨 Você desviou do contra-ataque!`]);
       }
+      advanceTurn();
+      return;
+    }
+    
+    const attackStat = character.arma === 'Arco' ? stats.poderDeFogo : stats.forca;
+    const weaponDamageBonus = stats.danoExtra;
+    
+    // Guest1337 double damage
+    let damageMultiplier = 1;
+    if (specialType === 'guest1337' && guest1337State.nextAttackDouble) {
+      damageMultiplier = 2;
+      setGuest1337State({ nextAttackDouble: false });
+      setBattleLog(prev => [...prev, `⚡ DANO DOBRADO!`]);
+    }
+    
+    let playerDamage = Math.max(1, (attackStat + stats.poderDeFogo + character.inteligencia + weaponDamageBonus + Math.floor(Math.random() * 6)) * damageMultiplier);
+    
+    // Enemy dodge
+    let enemyDodged = false;
+    if (currentEnemy.des > stats.destreza && !currentEnemy.isBaby) {
+      enemyDodged = Math.random() < 0.3;
+    }
+    
+    // Player dodge (Sonic always dodges, Gojo with Infinito always dodges)
+    let playerDodged = false;
+    if (isSonicMode) {
+      playerDodged = true;
+    } else if (specialType === 'gojo' && gojoState.infinitoTurnsActive > 0) {
+      playerDodged = true;
+      setBattleLog(prev => [...prev, `♾️ Infinito bloqueou o ataque!`]);
+    } else if (stats.destreza > currentEnemy.des) {
+      playerDodged = Math.random() < 0.5;
+    }
+    
+    let enemyDamage = 0;
+    if (!playerDodged && gojoState.enemyStunTurns === 0 && !currentEnemy.isBaby) {
+      enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
+    }
+
+    if (enemyDodged) {
+      setBattleLog(prev => [...prev, `💨 ${currentEnemy.nome} desviou!`]);
+      
+      if (!playerDodged && enemyDamage > 0) {
+        const newPlayerHp = character.vida - enemyDamage;
+        setBattleLog(prev => [...prev, `💥 Inimigo causou ${enemyDamage}!`]);
+        
+        if (newPlayerHp <= 0) {
+          handlePlayerDeath();
+        } else {
+          const updatedChar = { ...character, vida: newPlayerHp };
+          setCharacter(updatedChar);
+          onCharacterUpdate(updatedChar);
+        }
+      } else if (playerDodged) {
+        setBattleLog(prev => [...prev, `💨 Você desviou!`]);
+      }
+      advanceTurn();
       return;
     }
 
     const newEnemyHp = currentEnemy.vida - playerDamage;
     const newPlayerHp = character.vida - enemyDamage;
 
-    if (playerDodged) {
-      setBattleLog(prev => [
-        ...prev,
-        `⚔️ Você causou ${playerDamage} de dano!`,
-        `💨 Você desviou do ataque do inimigo!`,
-      ]);
+    if (playerDodged || enemyDamage === 0) {
+      setBattleLog(prev => [...prev, `⚔️ Você causou ${playerDamage}!`, enemyDamage === 0 ? '' : `💨 Você desviou!`].filter(Boolean));
     } else {
-      setBattleLog(prev => [
-        ...prev,
-        `⚔️ Você causou ${playerDamage} de dano!`,
-        `💥 Inimigo causou ${enemyDamage} de dano!`,
-      ]);
+      setBattleLog(prev => [...prev, `⚔️ Você causou ${playerDamage}!`, `💥 Inimigo causou ${enemyDamage}!`]);
     }
 
     if (newEnemyHp <= 0) {
-      const xpGained = 100;
-      const newXP = character.xp + xpGained;
-      const xpNeeded = character.level * 100;
-      let newLevel = character.level;
-      let newPointsToSpend = character.pointsToSpend;
-      
-      if (newXP >= xpNeeded) {
-        newLevel++;
-        newPointsToSpend++;
-        setBattleLog(prev => [...prev, `🎯 Você derrotou ${currentEnemy.nome}! +${xpGained} XP`, `🎊 LEVEL UP! Agora você é nível ${newLevel}! (+1 ponto para gastar)`]);
-      } else {
-        setBattleLog(prev => [...prev, `🎯 Você derrotou ${currentEnemy.nome}! +${xpGained} XP`]);
-      }
-      
-      const updatedChar = { 
-        ...character, 
-        vida: newPlayerHp, 
-        xp: newXP >= xpNeeded ? newXP - xpNeeded : newXP,
-        level: newLevel,
-        pointsToSpend: newPointsToSpend
-      };
-      setCharacter(updatedChar);
-      onCharacterUpdate(updatedChar);
-      
-      const updatedRooms = [...rooms];
-      updatedRooms[currentRoom + 1].cleared = true;
-      setRooms(updatedRooms);
-      setCurrentEnemy(null);
-      setInBattle(false);
-      setCurrentRoom(currentRoom + 1);
+      handleEnemyDeath();
     } else if (newPlayerHp <= 0) {
-      setBattleLog(prev => [...prev, `💀 Você foi derrotado! Game Over.`]);
-      const updatedChar = { ...character, vida: 0 };
-      setCharacter(updatedChar);
-      onCharacterUpdate(updatedChar);
-      setInBattle(false);
+      handlePlayerDeath();
     } else {
       setCurrentEnemy({ ...currentEnemy, vida: newEnemyHp });
       const updatedChar = { ...character, vida: newPlayerHp };
       setCharacter(updatedChar);
       onCharacterUpdate(updatedChar);
     }
+    
+    advanceTurn();
+  };
+
+  // Sukuna attacks
+  const sukunaAttack = (attackType: 'desmantelar' | 'clevar' | 'fuga' | 'santuario') => {
+    if (!currentEnemy || attackCooldown) return;
+    
+    const cooldowns = { desmantelar: 2, clevar: 4, fuga: 5, santuario: 10 };
+    const stateKey = `${attackType}Cooldown` as keyof SukunaState;
+    
+    if (sukunaState[stateKey] > 0) {
+      setBattleLog(prev => [...prev, `⏰ ${attackType} em cooldown: ${sukunaState[stateKey]} turnos`]);
+      return;
+    }
+    
+    setAttackCooldown(true);
+    setTimeout(() => setAttackCooldown(false), 3000);
+    
+    const damage = calculateSukunaDamage(attackType);
+    const names = { desmantelar: 'DESMANTELAR', clevar: 'CLEVAR', fuga: 'FUGA', santuario: 'SANTUÁRIO MALEVOLENTE' };
+    
+    setSukunaState(prev => ({ ...prev, [stateKey]: cooldowns[attackType] }));
+    dealDamageToEnemy(damage, `🔥 ${names[attackType]}! ${damage} de dano!`);
+    advanceTurn();
+  };
+
+  // Yi attacks
+  const yiCounter = () => {
+    if (!currentEnemy || attackCooldown || yiState.currentStep !== 'counter') return;
+    
+    setAttackCooldown(true);
+    setTimeout(() => setAttackCooldown(false), 3000);
+    
+    if (Math.random() < 0.5) {
+      setBattleLog(prev => [...prev, `🛡️ COUNTER! Yi bloqueou o ataque e ganhou um talismã!`]);
+      setYiState(prev => ({ ...prev, currentStep: 'insert', hasTalisman: true }));
+    } else {
+      setBattleLog(prev => [...prev, `❌ Counter falhou!`]);
+      // Enemy attacks
+      const stats = getTotalStats();
+      const enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
+      const newPlayerHp = character.vida - enemyDamage;
+      setBattleLog(prev => [...prev, `💥 Inimigo causou ${enemyDamage}!`]);
+      
+      if (newPlayerHp <= 0) {
+        handlePlayerDeath();
+      } else {
+        const updatedChar = { ...character, vida: newPlayerHp };
+        setCharacter(updatedChar);
+        onCharacterUpdate(updatedChar);
+      }
+    }
+    advanceTurn();
+  };
+
+  const yiInsert = () => {
+    if (!currentEnemy || yiState.currentStep !== 'insert') return;
+    setBattleLog(prev => [...prev, `📍 Yi inseriu o talismã no inimigo!`]);
+    setYiState(prev => ({ ...prev, currentStep: 'explode' }));
+  };
+
+  const yiExplode = () => {
+    if (!currentEnemy || yiState.currentStep !== 'explode') return;
+    setBattleLog(prev => [...prev, `💥 EXPLOSÃO! 500 de dano garantido!`]);
+    dealDamageToEnemy(500, '');
+    setYiState(prev => ({ ...prev, currentStep: 'counter', hasTalisman: false }));
+    advanceTurn();
+  };
+
+  // Gojo attacks
+  const gojoAttack = (attackType: 'azul' | 'vermelho' | 'vazioRoxo' | 'infinito' | 'vazioInfinito') => {
+    if (!currentEnemy || attackCooldown) return;
+    
+    if (attackType === 'vazioInfinito' && gojoState.vazioInfinitoUsed) {
+      setBattleLog(prev => [...prev, `❌ Vazio Infinito só pode ser usado uma vez!`]);
+      return;
+    }
+    
+    const cooldowns: Record<string, keyof GojoState> = { 
+      azul: 'azulCooldown', vermelho: 'vermelhoCooldown', 
+      vazioRoxo: 'vazioRoxoCooldown', infinito: 'infinitoCooldown' 
+    };
+    
+    if (attackType !== 'vazioInfinito' && gojoState[cooldowns[attackType]] > 0) {
+      setBattleLog(prev => [...prev, `⏰ Em cooldown: ${gojoState[cooldowns[attackType]]} turnos`]);
+      return;
+    }
+    
+    setAttackCooldown(true);
+    setTimeout(() => setAttackCooldown(false), 3000);
+    
+    if (attackType === 'infinito') {
+      setGojoState(prev => ({ ...prev, infinitoCooldown: 5, infinitoTurnsActive: 3 }));
+      setBattleLog(prev => [...prev, `♾️ INFINITO ATIVADO! Invulnerável por 3 turnos!`]);
+    } else if (attackType === 'vazioInfinito') {
+      setGojoState(prev => ({ ...prev, vazioInfinitoUsed: true, enemyStunTurns: 2 }));
+      setBattleLog(prev => [...prev, `🌀 VAZIO INFINITO! Inimigo paralisado por 2 turnos!`]);
+    } else {
+      const damage = calculateGojoDamage(attackType);
+      const names = { azul: 'AZUL', vermelho: 'VERMELHO', vazioRoxo: 'VAZIO ROXO' };
+      const cooldownValues = { azul: 5, vermelho: 5, vazioRoxo: 10 };
+      
+      setGojoState(prev => ({ ...prev, [cooldowns[attackType]]: cooldownValues[attackType] }));
+      dealDamageToEnemy(damage, `🔵 ${names[attackType]}! ${damage} de dano!`);
+    }
+    advanceTurn();
+  };
+
+  // Mario mushroom
+  const marioMushroom = () => {
+    if (marioState.mushroomCooldown > 0) {
+      setBattleLog(prev => [...prev, `⏰ Cogumelo em cooldown: ${marioState.mushroomCooldown} turnos`]);
+      return;
+    }
+    setMarioState({ mushroomCooldown: 4, mushroomTurnsActive: 2 });
+    setBattleLog(prev => [...prev, `🍄 Mario comeu um cogumelo! +15 de dano por 2 turnos!`]);
+  };
+
+  // Guest1337 block
+  const guest1337Block = () => {
+    if (!currentEnemy || attackCooldown) return;
+    
+    setAttackCooldown(true);
+    setTimeout(() => setAttackCooldown(false), 3000);
+    
+    if (Math.random() < 0.5) {
+      setBattleLog(prev => [...prev, `🛡️ BLOQUEIO PERFEITO! Próximo ataque causará dano dobrado!`]);
+      setGuest1337State({ nextAttackDouble: true });
+    } else {
+      setBattleLog(prev => [...prev, `❌ Bloqueio falhou! Turno perdido.`]);
+    }
+    advanceTurn();
+  };
+
+  // Chronos rewind
+  const chronosRewind = () => {
+    if (!chronosState.canRewind || !chronosState.lastTurnState) {
+      setBattleLog(prev => [...prev, `❌ Não é possível voltar no tempo agora!`]);
+      return;
+    }
+    
+    const { enemyHp, playerHp } = chronosState.lastTurnState;
+    if (currentEnemy) setCurrentEnemy({ ...currentEnemy, vida: enemyHp });
+    const updatedChar = { ...character, vida: playerHp };
+    setCharacter(updatedChar);
+    onCharacterUpdate(updatedChar);
+    setChronosState(prev => ({ ...prev, canRewind: false }));
+    setBattleLog(prev => [...prev, `⏰ CHRONOS voltou no tempo! Dano anulado!`]);
+  };
+
+  // Chronos transform
+  const chronosTransform = () => {
+    if (!currentEnemy || chronosState.transformUsed) return;
+    
+    setChronosState(prev => ({ ...prev, transformUsed: true }));
+    setCurrentEnemy({ ...currentEnemy, nome: 'Bebê Indefeso', vida: 1, forca: 0, des: 0, isBaby: true });
+    setBattleLog(prev => [...prev, `⏰ TRANSFORM! O inimigo virou um bebê indefeso!`]);
   };
 
   const flee = () => {
+    // Guest1337 can't flee
+    if (specialType === 'guest1337') {
+      setBattleLog(prev => [...prev, `❌ Guest 1337 não pode fugir! Use Bloquear!`]);
+      return;
+    }
+    
     if (Math.random() < 0.5) {
-      setBattleLog(prev => [...prev, `🏃 Você fugiu com sucesso!`]);
+      setBattleLog(prev => [...prev, `🏃 Você fugiu!`]);
       setCurrentEnemy(null);
       setInBattle(false);
-      // Avança uma porta ao fugir
       setCurrentRoom(currentRoom + 1);
     } else {
       const stats = getTotalStats();
       const enemyDamage = Math.max(1, (currentEnemy?.forca || 0) + Math.floor(Math.random() * 4));
       const newPlayerHp = character.vida - enemyDamage;
-      setBattleLog(prev => [...prev, `❌ Falha ao fugir! Você levou ${enemyDamage} de dano.`]);
+      setBattleLog(prev => [...prev, `❌ Falha ao fugir! -${enemyDamage} HP`]);
       
       if (newPlayerHp <= 0) {
-        setBattleLog(prev => [...prev, `💀 Você foi derrotado! Game Over.`]);
-        const updatedChar = { ...character, vida: 0 };
-        setCharacter(updatedChar);
-        onCharacterUpdate(updatedChar);
-        setInBattle(false);
+        handlePlayerDeath();
       } else {
         const updatedChar = { ...character, vida: newPlayerHp };
         setCharacter(updatedChar);
@@ -624,30 +826,13 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const equipItem = (item: Item) => {
     if (item.tipo === 'arma') {
       setEquippedWeapon(item);
-      setBattleLog(prev => [...prev, `⚔️ Você equipou: ${item.nome}`]);
+      setBattleLog(prev => [...prev, `⚔️ Equipou: ${item.nome}`]);
     } else if (item.tipo === 'armadura') {
       setEquippedArmor(item);
-      setBattleLog(prev => [...prev, `🛡️ Você equipou: ${item.nome}`]);
+      setBattleLog(prev => [...prev, `🛡️ Equipou: ${item.nome}`]);
     } else if (item.tipo === 'especial') {
-      setBattleLog(prev => [...prev, `✨ ${item.nome} obtida! Agora você pode atacar a Sombra Primordial!`]);
+      setBattleLog(prev => [...prev, `✨ ${item.nome} obtida!`]);
     }
-  };
-
-  const playHealSound = () => {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.value = 600;
-    oscillator.type = 'sine';
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.4);
   };
 
   const usePotion = (item: Item, index: number) => {
@@ -657,8 +842,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       const updatedChar = { ...character, vida: newHp };
       setCharacter(updatedChar);
       onCharacterUpdate(updatedChar);
-      playHealSound();
-      setBattleLog(prev => [...prev, `💚 Você usou ${item.nome} e recuperou ${item.cura} de vida!`]);
+      setBattleLog(prev => [...prev, `💚 +${item.cura} HP!`]);
       setInventory(prev => prev.filter((_, i) => i !== index));
     }
   };
@@ -666,15 +850,15 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const useMantra = (index: number) => {
     setMantraActive(true);
     setMantraPenalty({ armadura: 1, ataque: 1 });
-    setBattleLog(prev => [...prev, `✨ Você ativou a Mantra das Sombras! (-1 Armadura, -1 Ataque)`]);
-    setBattleLog(prev => [...prev, `⚡ Agora você pode atacar a Sombra Primordial!`]);
-    // Não remove do inventário aqui, apenas após a batalha
+    setBattleLog(prev => [...prev, `✨ Mantra ativada! (-1 Armadura, -1 Ataque)`]);
   };
 
   const stats = getTotalStats();
   
-  // Determina a pixel art do herói baseado na arma
   const getHeroSprite = () => {
+    if (specialType !== 'normal') {
+      return getCharacterSprite(specialType, luffyState.currentGear);
+    }
     switch(character.arma) {
       case 'Espada': return heroSword;
       case 'Arco': return heroBow;
@@ -685,72 +869,39 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     }
   };
 
-  // Sistema de janela deslizante: mostra portas em intervalos de 5 (1-5, 6-10, 11-15, etc.)
   const getVisibleRooms = () => {
     const startRoom = Math.floor(currentRoom / 5) * 5;
     const endRoom = Math.min(maxRooms, startRoom + 5);
-    return rooms.slice(startRoom, endRoom).map((room, index) => ({
-      ...room,
-      actualIndex: startRoom + index
-    }));
+    return rooms.slice(startRoom, endRoom).map((room, index) => ({ ...room, actualIndex: startRoom + index }));
   };
 
   const visibleRooms = getVisibleRooms();
   const isBossBattle = rooms[currentRoom + 1]?.isBoss;
 
-  // Tela de Vitória
+  // Victory Screen
   if (gameWon) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{
-        backgroundImage: `url(${bossAeternusBackground})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundImage: `url(${bossAeternusBackground})`, backgroundSize: 'cover' }}>
         <div className="bg-black/90 border-8 border-yellow-500 p-12 rounded-sm max-w-2xl text-center">
           <h1 className="text-6xl font-bold text-yellow-500 mb-6 animate-pulse" style={{ fontFamily: 'monospace' }}>
             {character.hardcore ? '💀 VOCÊ ESCAPOU! 💀' : '🏆 VITÓRIA! 🏆'}
           </h1>
-          <p className="text-white text-2xl mb-4" style={{ fontFamily: 'monospace' }}>
-            {character.hardcore 
-              ? 'Você conseguiu escapar do MODO IMPOSSÍVEL!' 
-              : isAftermatch 
-                ? 'Você completou o modo AFTERMATCH!' 
-                : 'Você completou a Dungeon das Sombras!'}
-          </p>
-          <p className="text-white text-xl mb-8" style={{ fontFamily: 'monospace' }}>
-            {character.nome} - Level {character.level}
-          </p>
-          <div className="space-y-2 text-white text-lg mb-8">
-            <p>🗡️ Força Final: {stats.forca}</p>
-            <p>🛡️ Armadura Final: {stats.armadura}</p>
-            <p>💪 Vida Final: {character.vida}</p>
-            <p>⭐ XP Total: {character.xp}</p>
-          </div>
-          <Button 
-            onClick={() => onReturnToSheet(0, true)}
-            className="bg-yellow-500 hover:bg-yellow-400 text-black text-xl px-8 py-4 font-bold border-4 border-yellow-300"
-            style={{ fontFamily: 'monospace' }}
-          >
-            🔙 VOLTAR PARA CRIAÇÃO
+          <p className="text-white text-2xl mb-4" style={{ fontFamily: 'monospace' }}>{character.nome} - Level {character.level}</p>
+          <Button onClick={() => onReturnToSheet(0, true)} className="bg-yellow-500 hover:bg-yellow-400 text-black text-xl px-8 py-4 font-bold">
+            🔙 VOLTAR
           </Button>
         </div>
       </div>
     );
   }
   
-  // Tela de Game Over
+  // Game Over Screen
   if (character.vida <= 0) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
         <div className="text-center">
-          <h1 className="text-6xl font-bold text-red-600 mb-8 animate-pulse" style={{ fontFamily: 'monospace' }}>
-            💀 VOCÊ MORREU 💀
-          </h1>
-          <Button 
-            onClick={() => onReturnToSheet(0, true)}
-            className="bg-red-600 hover:bg-red-700 text-white text-xl px-8 py-4 font-bold"
-            style={{ fontFamily: 'monospace' }}
-          >
+          <h1 className="text-6xl font-bold text-red-600 mb-8 animate-pulse" style={{ fontFamily: 'monospace' }}>💀 VOCÊ MORREU 💀</h1>
+          <Button onClick={() => onReturnToSheet(0, true)} className="bg-red-600 hover:bg-red-700 text-white text-xl px-8 py-4 font-bold">
             VOLTAR PARA CRIAÇÃO
           </Button>
         </div>
@@ -758,58 +909,149 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     );
   }
 
+  // Luffy Gear Menu
+  const renderLuffyGearMenu = () => {
+    if (specialType !== 'luffy' || !luffyState.gearMenuOpen) return null;
+    
+    return (
+      <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 bg-black border-4 border-red-500 p-4 z-50">
+        <h3 className="text-white text-lg font-bold mb-2">GEARS</h3>
+        {[2, 3, 4, 5].map(gear => (
+          <button
+            key={gear}
+            onClick={() => {
+              setLuffyState(prev => ({ ...prev, currentGear: gear as 0|2|3|4|5, gearTurnsActive: 0, gearMenuOpen: false }));
+              setBattleLog(prev => [...prev, `⚡ GEAR ${gear} ATIVADO!`]);
+            }}
+            disabled={luffyState.currentGear === gear}
+            className="block w-full text-left text-white border-2 border-white px-4 py-2 mb-2 hover:bg-white hover:text-black"
+            title={getLuffyGearCost(gear)}
+          >
+            Gear {gear} <span className="text-xs text-red-300">({getLuffyGearCost(gear)})</span>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  // Special Attack Buttons
+  const renderSpecialAttacks = () => {
+    if (specialType === 'sukuna') {
+      return (
+        <>
+          <Button onClick={() => sukunaAttack('desmantelar')} disabled={attackCooldown || sukunaState.desmantelarCooldown > 0} className="bg-purple-600 hover:bg-purple-500">
+            Desmantelar {sukunaState.desmantelarCooldown > 0 ? `(${sukunaState.desmantelarCooldown})` : ''}
+          </Button>
+          <Button onClick={() => sukunaAttack('clevar')} disabled={attackCooldown || sukunaState.clevarCooldown > 0} className="bg-purple-700 hover:bg-purple-600">
+            Clevar {sukunaState.clevarCooldown > 0 ? `(${sukunaState.clevarCooldown})` : ''}
+          </Button>
+          <Button onClick={() => sukunaAttack('fuga')} disabled={attackCooldown || sukunaState.fugaCooldown > 0} className="bg-orange-600 hover:bg-orange-500">
+            Fuga {sukunaState.fugaCooldown > 0 ? `(${sukunaState.fugaCooldown})` : ''}
+          </Button>
+          <Button onClick={() => sukunaAttack('santuario')} disabled={attackCooldown || sukunaState.santuarioCooldown > 0} className="bg-red-800 hover:bg-red-700">
+            Santuário {sukunaState.santuarioCooldown > 0 ? `(${sukunaState.santuarioCooldown})` : ''}
+          </Button>
+        </>
+      );
+    }
+    
+    if (specialType === 'yi') {
+      return (
+        <>
+          {yiState.currentStep === 'counter' && (
+            <Button onClick={yiCounter} disabled={attackCooldown} className="bg-yellow-600 hover:bg-yellow-500">Counter</Button>
+          )}
+          {yiState.currentStep === 'insert' && (
+            <Button onClick={yiInsert} className="bg-green-600 hover:bg-green-500">Insert</Button>
+          )}
+          {yiState.currentStep === 'explode' && (
+            <Button onClick={yiExplode} className="bg-red-600 hover:bg-red-500">EXPLODE!</Button>
+          )}
+        </>
+      );
+    }
+    
+    if (specialType === 'gojo') {
+      return (
+        <>
+          <Button onClick={() => gojoAttack('azul')} disabled={attackCooldown || gojoState.azulCooldown > 0} className="bg-blue-600 hover:bg-blue-500">
+            Azul {gojoState.azulCooldown > 0 ? `(${gojoState.azulCooldown})` : ''}
+          </Button>
+          <Button onClick={() => gojoAttack('vermelho')} disabled={attackCooldown || gojoState.vermelhoCooldown > 0} className="bg-red-600 hover:bg-red-500">
+            Vermelho {gojoState.vermelhoCooldown > 0 ? `(${gojoState.vermelhoCooldown})` : ''}
+          </Button>
+          <Button onClick={() => gojoAttack('vazioRoxo')} disabled={attackCooldown || gojoState.vazioRoxoCooldown > 0} className="bg-purple-600 hover:bg-purple-500">
+            Vazio Roxo {gojoState.vazioRoxoCooldown > 0 ? `(${gojoState.vazioRoxoCooldown})` : ''}
+          </Button>
+          <Button onClick={() => gojoAttack('infinito')} disabled={attackCooldown || gojoState.infinitoCooldown > 0} className="bg-cyan-600 hover:bg-cyan-500">
+            Infinito {gojoState.infinitoCooldown > 0 ? `(${gojoState.infinitoCooldown})` : gojoState.infinitoTurnsActive > 0 ? `(${gojoState.infinitoTurnsActive}t)` : ''}
+          </Button>
+          <Button onClick={() => gojoAttack('vazioInfinito')} disabled={attackCooldown || gojoState.vazioInfinitoUsed} className="bg-indigo-800 hover:bg-indigo-700">
+            Vazio Infinito {gojoState.vazioInfinitoUsed ? '(Usado)' : ''}
+          </Button>
+        </>
+      );
+    }
+    
+    if (specialType === 'mario') {
+      return (
+        <Button onClick={marioMushroom} disabled={marioState.mushroomCooldown > 0} className="bg-red-500 hover:bg-red-400">
+          🍄 Cogumelo {marioState.mushroomCooldown > 0 ? `(${marioState.mushroomCooldown})` : marioState.mushroomTurnsActive > 0 ? `(+15 por ${marioState.mushroomTurnsActive}t)` : ''}
+        </Button>
+      );
+    }
+    
+    if (specialType === 'chronos') {
+      return (
+        <>
+          <Button onClick={chronosRewind} disabled={!chronosState.canRewind} className="bg-cyan-600 hover:bg-cyan-500">
+            ⏪ Voltar Turno
+          </Button>
+          <Button onClick={chronosTransform} disabled={chronosState.transformUsed} className="bg-purple-800 hover:bg-purple-700">
+            ⏰ TRANSFORM {chronosState.transformUsed ? '(Usado)' : ''}
+          </Button>
+        </>
+      );
+    }
+    
+    return null;
+  };
+
   return (
-    <div className={`min-h-screen overflow-x-auto ${
-      isInfernoMode 
-        ? 'bg-gradient-to-br from-red-950 via-red-900 to-black' 
-        : 'dungeon-bg'
-    }`}>
+    <div className={`min-h-screen overflow-x-auto ${isInfernoMode ? 'bg-gradient-to-br from-red-950 via-red-900 to-black' : 'dungeon-bg'}`}>
       <div className="min-w-max p-8">
-        {/* Story Section */}
-        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 max-w-4xl ${
-          isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-accent'
-        }`}>
+        {/* Story */}
+        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 max-w-4xl ${isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-accent'}`}>
           <h2 className={`text-2xl font-bold mb-2 ${isInfernoMode ? 'text-red-400' : 'cave-glow'}`}>📜 História</h2>
           <p className="text-sm">{story}</p>
         </div>
 
         {/* Character Info */}
-        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ${
-          isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
-        }`}>
+        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ${isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'}`}>
           <h2 className="text-2xl font-bold mb-4">{character.nome}</h2>
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>Arma: {character.arma}</div>
-            <div>Vida: {character.vida}</div>
+            <div>{specialType === 'yi' ? `Vidas: ${yiState.lives}` : `Vida: ${character.vida}`}</div>
             <div>Level: {character.level}</div>
             <div>Armadura: {stats.armadura}</div>
             <div>XP: {character.xp}/{character.level * 100}</div>
-            {character.pointsToSpend > 0 && (
-              <div className="text-accent font-bold">Pontos: {character.pointsToSpend}</div>
-            )}
+            {character.pointsToSpend > 0 && <div className="text-accent font-bold">Pontos: {character.pointsToSpend}</div>}
           </div>
-          <div className="mt-4 text-xs border-t-2 border-primary pt-2">
-            Força: {stats.forca} | Destreza: {character.destreza} | Constituição: {character.constituicao} | 
-            Inteligência: {character.inteligencia} | Poder de Fogo: {stats.poderDeFogo}
-          </div>
+          {specialType === 'luffy' && luffyState.currentGear > 0 && (
+            <div className="mt-2 text-red-400 font-bold">⚡ Gear {luffyState.currentGear} Ativo!</div>
+          )}
+          {specialType === 'gojo' && gojoState.infinitoTurnsActive > 0 && (
+            <div className="mt-2 text-cyan-400 font-bold">♾️ Infinito: {gojoState.infinitoTurnsActive} turnos</div>
+          )}
           {character.pointsToSpend > 0 && (
-            <Button 
-              onClick={() => onReturnToSheet(0)}
-              className={`mt-4 w-full ${
-                isInfernoMode 
-                  ? 'bg-red-900 hover:bg-red-800 text-red-100' 
-                  : 'bg-accent hover:bg-accent/90 text-accent-foreground'
-              }`}
-            >
-              Voltar à Ficha (Gastar Pontos)
+            <Button onClick={() => onReturnToSheet(0)} className={`mt-4 w-full ${isInfernoMode ? 'bg-red-900 hover:bg-red-800' : 'bg-accent hover:bg-accent/90'}`}>
+              Voltar à Ficha
             </Button>
           )}
         </div>
 
-        {/* Equipment */}
-        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ml-4 ${
-          isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
-        }`}>
+        {/* Equipment & Inventory */}
+        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ml-4 ${isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'}`}>
           <h3 className="text-lg font-bold mb-2">⚔️ Equipamentos</h3>
           <div className="text-sm space-y-1">
             <div>Arma: {equippedWeapon?.nome || "Nenhuma"}</div>
@@ -817,34 +1059,19 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
           </div>
         </div>
 
-        {/* Inventory */}
         {inventory.length > 0 && (
-          <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ml-4 max-w-sm ${
-            isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
-          }`}>
+          <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ml-4 max-w-sm ${isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'}`}>
             <h3 className="text-lg font-bold mb-2">🎒 Inventário</h3>
             <div className="text-xs space-y-2 max-h-32 overflow-y-auto">
               {inventory.map((item, index) => (
                 <div key={index} className="flex justify-between items-center border-b border-primary pb-1">
                   <span>{item.nome}</span>
                   {item.tipo === 'pocao' ? (
-                    <Button 
-                      onClick={() => usePotion(item, index)}
-                      size="sm"
-                      className="bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs h-6"
-                    >
-                      Usar
-                    </Button>
+                    <Button onClick={() => usePotion(item, index)} size="sm" className="bg-destructive text-xs h-6">Usar</Button>
                   ) : item.tipo === 'especial' ? (
-                    <span className="text-xs text-accent-foreground">✨ Item Especial</span>
+                    <span className="text-xs text-accent-foreground">✨</span>
                   ) : (
-                    <Button 
-                      onClick={() => equipItem(item)}
-                      size="sm"
-                      className="bg-accent hover:bg-accent/90 text-accent-foreground text-xs h-6"
-                    >
-                      Equipar
-                    </Button>
+                    <Button onClick={() => equipItem(item)} size="sm" className="bg-accent text-xs h-6">Equipar</Button>
                   )}
                 </div>
               ))}
@@ -853,36 +1080,23 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         )}
 
         {/* Room Controls */}
-        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ml-4 ${
-          isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
-        }`}>
+        <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block ml-4 ${isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'}`}>
           <div className="text-sm font-bold mb-2">Dungeon: 100 Salas</div>
-          <Button 
-            onClick={generateRooms} 
-            disabled={currentRoom > 0}
-            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground border-2 border-primary"
-          >
+          <Button onClick={generateRooms} disabled={currentRoom > 0} className="bg-secondary hover:bg-secondary/90 border-2 border-primary">
             Gerar Nova Dungeon
           </Button>
         </div>
 
-        {/* Rooms Display - Sistema de janela deslizante */}
+        {/* Rooms Display */}
         <div className="flex gap-4 mb-8">
-          {visibleRooms.map((room, index) => (
+          {visibleRooms.map((room) => (
             <div
               key={room.actualIndex}
               className={`parchment-bg p-6 rounded-sm border-4 w-48 h-48 flex flex-col items-center justify-center transition-all ${
                 room.actualIndex === currentRoom 
-                  ? isInfernoMode
-                    ? 'border-red-600 scale-110 shadow-lg'
-                    : 'border-accent scale-110 shadow-lg'
-                  : room.actualIndex < currentRoom 
-                    ? 'border-muted opacity-50' 
-                    : room.isBoss
-                      ? 'border-destructive'
-                      : isInfernoMode
-                      ? 'border-red-900 bg-red-950/80'
-                      : 'border-primary'
+                  ? isInfernoMode ? 'border-red-600 scale-110 shadow-lg' : 'border-accent scale-110 shadow-lg'
+                  : room.actualIndex < currentRoom ? 'border-muted opacity-50' 
+                  : room.isBoss ? 'border-destructive' : isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
               }`}
             >
               <div className="text-4xl mb-2">
@@ -894,296 +1108,106 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                   {room.isBoss ? '⚠️ BOSS' : '⚠️ Perigo'}
                 </div>
               )}
-              {room.chest && room.actualIndex >= currentRoom && (
-                <div className="text-xs mt-2 text-accent">🎁 Baú</div>
-              )}
             </div>
           ))}
         </div>
 
-        {/* Battle or Navigation - Sempre visível */}
+        {/* Battle or Navigation */}
         {character.vida > 0 && (
           <>
-            {inBattle && currentEnemy && isBossBattle ? (
-              /* Tela de Batalha Estilo Undertale para Bosses */
-              <div 
-                className="fixed inset-0 flex items-center justify-center z-50"
-                style={{
-                  backgroundImage: `url(${getBossBackground(currentEnemy.nome)})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
-                }}
-              >
-                {/* Tocar música do boss final */}
-                {currentEnemy.nome === 'Aeternus, o Deus das Sombras' && (
-                  <audio autoPlay loop>
-                    <source src="/boss-music.mp3" type="audio/mpeg" />
-                  </audio>
-                )}
-                <div className="w-full max-w-4xl mx-auto relative">
-                  <div className="bg-black/80 border-8 border-white p-8 rounded-sm min-h-[600px] flex flex-col">
-                    {/* Boss Sprite */}
-                    <div className="flex justify-center mb-8 relative">
-                      <img 
-                        src={currentEnemy.foto} 
-                        alt={currentEnemy.nome}
-                        className={`w-96 h-96 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
-                        style={{ imageRendering: 'pixelated' }}
-                      />
-                      {damageAnimation.show && (
-                        <div 
-                          className="absolute text-red-500 font-bold text-6xl animate-fade-out pointer-events-none"
-                          style={{ 
-                            left: `${damageAnimation.x}px`, 
-                            top: `${damageAnimation.y}px`,
-                            fontFamily: 'monospace',
-                            textShadow: '2px 2px 4px black'
-                          }}
-                        >
-                          -{damageAnimation.damage}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Boss Info */}
-                    <div className="text-white text-center mb-8 drop-shadow-lg">
-                      <h2 className="text-3xl font-bold mb-2 drop-shadow-lg" style={{ fontFamily: 'monospace' }}>
-                        {currentEnemy.nome}
-                      </h2>
-                      <div className="flex justify-center gap-4 text-lg drop-shadow-lg">
-                        <span>HP: {currentEnemy.vida}</span>
-                        <span>ATK: {currentEnemy.forca}</span>
-                        <span>DEF: {currentEnemy.cons}</span>
-                      </div>
-                      <div className="mt-4 text-yellow-300 text-xl font-bold drop-shadow-lg" style={{ fontFamily: 'monospace' }}>
-                        SEU HP: {character.vida}
-                      </div>
-                    </div>
-                  
-                   {/* Battle Box - Undertale Style */}
-                   <div className="border-8 border-white bg-black p-8 flex justify-around items-center mt-auto relative">
-                     {/* Animação Kamehameha */}
-                     {kamehamehaAnimation && (
-                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
-                         <div className="text-8xl font-bold text-yellow-400 animate-pulse" style={{ 
-                           fontFamily: 'monospace',
-                           textShadow: '0 0 20px #ffd700, 0 0 40px #ff8c00, 0 0 60px #ff4500',
-                           animation: 'pulse 0.3s infinite, kamehameha 2s linear'
-                         }}>
-                           KA-ME-HA-ME-HA!!!
-                         </div>
-                       </div>
-                     )}
-                     <button
-                       onClick={attack}
-                       disabled={attackCooldown}
-                       className={`border-4 ${isGokuMode ? 'border-yellow-500 text-yellow-500' : 'border-orange-500 text-orange-500'} bg-black px-12 py-6 text-2xl font-bold hover:bg-${isGokuMode ? 'yellow' : 'orange'}-500 hover:text-black transition-all ${attackCooldown ? 'opacity-50 cursor-not-allowed' : ''}`}
-                       style={{ fontFamily: 'monospace' }}
-                     >
-                       {isGokuMode ? '⚡ KAMEHAMEHA' : '⚔️ FIGHT'}
-                       {attackCooldown && ' (Aguarde...)'}
-                     </button>
-                     <button
-                       onClick={() => setShowInventoryInBattle(!showInventoryInBattle)}
-                       className="border-4 border-blue-500 bg-black text-blue-500 px-12 py-6 text-2xl font-bold hover:bg-blue-500 hover:text-black transition-all"
-                       style={{ fontFamily: 'monospace' }}
-                     >
-                       🎒 ITEM
-                     </button>
-                   </div>
-                  
-                  {/* Inventory in Battle */}
-                  {showInventoryInBattle && (
-                    <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 bg-black border-8 border-white p-6 max-w-md w-full">
-                      <h3 className="text-white text-xl font-bold mb-4" style={{ fontFamily: 'monospace' }}>ITENS</h3>
-                      <div className="max-h-48 overflow-y-auto space-y-2">
-                        {inventory.filter(item => item.tipo === 'pocao' || item.especial === 'mantra_sombras').length === 0 ? (
-                          <p className="text-white" style={{ fontFamily: 'monospace' }}>Sem itens disponíveis</p>
-                        ) : (
-                          inventory.map((item, index) => {
-                            if (item.tipo === 'pocao') {
-                              return (
-                                <button
-                                  key={index}
-                                  onClick={() => {
-                                    usePotion(item, index);
-                                    setShowInventoryInBattle(false);
-                                  }}
-                                  className="w-full text-left text-white border-2 border-white px-4 py-2 hover:bg-white hover:text-black transition-all"
-                                  style={{ fontFamily: 'monospace' }}
-                                >
-                                  {item.nome} (+{item.cura} HP)
-                                </button>
-                              );
-                            } else if (item.especial === 'mantra_sombras' && !mantraActive) {
-                              return (
-                                <button
-                                  key={index}
-                                  onClick={() => {
-                                    useMantra(index);
-                                    setShowInventoryInBattle(false);
-                                  }}
-                                  className="w-full text-left text-purple-400 border-2 border-purple-400 px-4 py-2 hover:bg-purple-400 hover:text-black transition-all"
-                                  style={{ fontFamily: 'monospace' }}
-                                >
-                                  ✨ {item.nome} (Use contra a Sombra)
-                                </button>
-                              );
-                            } else if (item.especial === 'mantra_sombras' && mantraActive) {
-                              return (
-                                <div
-                                  key={index}
-                                  className="w-full text-left text-gray-500 border-2 border-gray-500 px-4 py-2"
-                                  style={{ fontFamily: 'monospace' }}
-                                >
-                                  ✨ {item.nome} (Ativa)
-                                </div>
-                              );
-                            }
-                            return null;
-                          })
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  </div>
-                </div>
-              </div>
-            ) : inBattle && currentEnemy ? (
-              /* Batalha Normal */
-              <div className="parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[600px]">
+            {inBattle && currentEnemy ? (
+              <div className={`parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[700px] ${isInfernoMode ? 'border-red-900 bg-red-950/80' : ''}`}>
                 <h3 className="text-xl font-bold mb-4">⚔️ Batalha: {currentEnemy.nome}</h3>
                 <div className="flex items-center justify-between gap-8 relative">
-                  {/* Herói à esquerda */}
                   <div className="flex flex-col items-center">
-                    <img 
-                      src={getHeroSprite()} 
-                      alt={character.nome}
-                      className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
-                      style={{ imageRendering: 'pixelated' }}
-                    />
+                    <img src={getHeroSprite()} alt={character.nome} className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`} style={{ imageRendering: 'pixelated' }} />
                     <div className="mt-2 text-center font-bold">
                       <div>{character.nome}</div>
-                      <div>HP: {character.vida}</div>
+                      <div>{specialType === 'yi' ? `Vidas: ${yiState.lives}` : `HP: ${character.vida}`}</div>
                     </div>
                   </div>
                   
-                  {/* Animação de dano no centro */}
-                  {damageAnimation.show && (
-                    <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      <img 
-                        src={slashEffect}
-                        alt="slash"
-                        className="w-32 h-32 object-contain animate-fade-in pointer-events-none"
-                        style={{ imageRendering: 'pixelated' }}
-                      />
-                      <div 
-                        className="absolute text-red-500 font-bold text-4xl animate-fade-out"
-                        style={{ 
-                          left: '50%', 
-                          top: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          fontFamily: 'monospace',
-                          textShadow: '2px 2px 4px black'
-                        }}
-                      >
-                        -{damageAnimation.damage}
-                      </div>
+                  {kamehamehaAnimation && (
+                    <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl font-bold text-yellow-400 animate-pulse">
+                      ⚡ KAMEHAMEHA! ⚡
                     </div>
                   )}
                   
-                  {/* Animações de Arma */}
-                  {weaponAnimation && (
-                    <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                      {weaponAnimation === 'Espada' && (
-                        <div className="text-8xl animate-sword-slash">⚔️</div>
-                      )}
-                      {weaponAnimation === 'Arco' && (
-                        <div className="text-8xl animate-bow-arrow">🏹</div>
-                      )}
-                      {weaponAnimation === 'Cajado' && (
-                        <div className="text-8xl animate-staff-magic">🪄✨</div>
-                      )}
-                      {weaponAnimation === 'Machado' && (
-                        <div className="text-8xl animate-axe-swing">🪓</div>
-                      )}
-                      {weaponAnimation === 'Diabo' && (
-                        <div className="text-8xl animate-devil-strike">😈🔥</div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Inimigo à direita */}
                   <div className="flex flex-col items-center">
-                    <img 
-                      src={currentEnemy.foto} 
-                      alt={currentEnemy.nome}
-                      className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`}
-                      style={{ imageRendering: 'pixelated' }}
-                    />
+                    <img src={currentEnemy.foto} alt={currentEnemy.nome} className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`} style={{ imageRendering: 'pixelated' }} />
                     <div className="mt-2 text-center text-sm">
                       <div className="font-bold">{currentEnemy.nome}</div>
                       <div>HP: {currentEnemy.vida}</div>
-                      <div className="text-xs">ATK: {currentEnemy.forca} | DEX: {currentEnemy.des}</div>
                     </div>
                   </div>
                 </div>
-                <div className="mt-6">
-                  {kamehamehaAnimation && (
-                    <div className="mb-4 text-center">
-                      <div className="text-6xl font-bold text-yellow-400 animate-pulse" style={{ 
-                        fontFamily: 'monospace',
-                        textShadow: '0 0 20px #ffd700, 0 0 40px #ff8c00',
-                        animation: 'pulse 0.3s infinite'
-                      }}>
-                        ⚡ KAMEHAMEHA! ⚡
-                      </div>
-                    </div>
-                  )}
-                  <div className="space-x-4">
+                
+                <div className="mt-6 flex flex-wrap gap-2">
+                  <Button onClick={attack} disabled={attackCooldown || (specialType === 'luffy' && luffyState.stunTurns > 0)} className={`bg-destructive hover:bg-destructive/90 ${attackCooldown ? 'opacity-50' : ''}`}>
+                    {isGokuMode ? '⚡ Kamehameha' : 'Atacar'}
+                    {attackCooldown && ' (3s)'}
+                  </Button>
+                  
+                  {renderSpecialAttacks()}
+                  
+                  {specialType === 'luffy' && (
                     <Button 
-                      onClick={attack} 
-                      disabled={attackCooldown}
-                      className={`bg-destructive hover:bg-destructive/90 text-destructive-foreground ${attackCooldown ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={() => {
+                        if (luffyState.currentGear > 0) {
+                          setLuffyState(prev => ({ ...prev, currentGear: 0, gearTurnsActive: 0 }));
+                          setBattleLog(prev => [...prev, '💨 Gear desativado!']);
+                        } else {
+                          setLuffyState(prev => ({ ...prev, gearMenuOpen: !prev.gearMenuOpen }));
+                        }
+                      }}
+                      className="bg-red-600 hover:bg-red-500"
                     >
-                      {isGokuMode ? '⚡ Kamehameha' : 'Atacar'}
-                      {attackCooldown && ' (3s)'}
+                      {luffyState.currentGear > 0 ? 'Desativar' : 'Gears'}
                     </Button>
-                    <Button onClick={flee} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
-                      Fugir
+                  )}
+                  
+                  {specialType === 'guest1337' ? (
+                    <Button onClick={guest1337Block} disabled={attackCooldown} className="bg-blue-600 hover:bg-blue-500">
+                      🛡️ Bloquear
                     </Button>
-                  </div>
+                  ) : (
+                    <Button onClick={flee} className="bg-secondary hover:bg-secondary/90">Fugir</Button>
+                  )}
                 </div>
+                
+                {renderLuffyGearMenu()}
               </div>
             ) : (
-              /* Navegação */
-              <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block min-w-[400px] ${
-                isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
-              }`}>
+              <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block min-w-[400px] ${isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'}`}>
                 <h3 className="text-xl font-bold mb-4">🎮 Controles</h3>
                 <div className="flex justify-center mb-4">
-                  <img 
-                    src={getHeroSprite()} 
-                    alt={character.nome}
-                    className="w-48 h-48 object-contain pixelated"
-                    style={{ imageRendering: 'pixelated' }}
-                  />
+                  <img src={getHeroSprite()} alt={character.nome} className="w-48 h-48 object-contain pixelated" style={{ imageRendering: 'pixelated' }} />
                 </div>
-                <div>
-                  <p className="text-sm mb-4">Sala atual: {currentRoom + 1}/{maxRooms}</p>
-                  <Button 
-                    onClick={advanceRoom}
-                    className={`font-bold text-lg px-8 py-4 w-full ${
-                      currentRoom === maxRooms - 1
-                        ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
-                        : isInfernoMode
-                        ? 'bg-red-900 hover:bg-red-800 text-red-100'
-                        : 'bg-accent hover:bg-accent/90 text-accent-foreground'
-                    }`}
-                  >
+                <p className="text-sm mb-4">Sala atual: {currentRoom + 1}/{maxRooms}</p>
+                
+                {specialType === 'chronos' ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input 
+                        type="number" 
+                        value={chronosTargetRoom} 
+                        onChange={(e) => setChronosTargetRoom(e.target.value)} 
+                        placeholder="Sala (1-100)"
+                        className="w-24"
+                      />
+                      <Button onClick={chronosTeleport} className="bg-cyan-600 hover:bg-cyan-500">
+                        ⏰ Ir até sala
+                      </Button>
+                    </div>
+                    <Button onClick={advanceRoom} className={`w-full font-bold text-lg px-8 py-4 ${currentRoom === maxRooms - 1 ? 'bg-yellow-600 hover:bg-yellow-500' : isInfernoMode ? 'bg-red-900 hover:bg-red-800' : 'bg-accent hover:bg-accent/90'}`}>
+                      {currentRoom === maxRooms - 1 ? '🚪 ESCAPAR' : '🚪 Avançar'}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button onClick={advanceRoom} className={`font-bold text-lg px-8 py-4 w-full ${currentRoom === maxRooms - 1 ? 'bg-yellow-600 hover:bg-yellow-500' : isInfernoMode ? 'bg-red-900 hover:bg-red-800' : 'bg-accent hover:bg-accent/90'}`}>
                     {currentRoom === maxRooms - 1 ? '🚪 ESCAPAR' : '🚪 Avançar Sala'}
                   </Button>
-                </div>
+                )}
               </div>
             )}
           </>
@@ -1191,14 +1215,10 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
         {/* Battle Log */}
         {battleLog.length > 0 && (
-          <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block max-w-2xl ml-4 align-top ${
-            isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'
-          }`}>
-            <h3 className="text-lg font-bold mb-4">📜 Log de Eventos</h3>
+          <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block max-w-2xl ml-4 align-top ${isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'}`}>
+            <h3 className="text-lg font-bold mb-4">📜 Log</h3>
             <div className="text-sm space-y-1 max-h-48 overflow-y-auto">
-              {battleLog.slice(-15).map((log, index) => (
-                <div key={index}>{log}</div>
-              ))}
+              {battleLog.slice(-15).map((log, index) => <div key={index}>{log}</div>)}
             </div>
           </div>
         )}

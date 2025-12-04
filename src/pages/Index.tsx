@@ -4,7 +4,8 @@ import GameArea from "@/components/GameArea";
 import CharacterSelect from "@/components/CharacterSelect";
 import SandboxMode from "@/components/SandboxMode";
 import { Button } from "@/components/ui/button";
-import { getGameProgress } from "@/utils/gameProgress";
+import { getGameProgress, resetGameProgress } from "@/utils/gameProgress";
+import { SpecialCharacter } from "@/utils/specialCharacters";
 
 interface Character {
   nome: string;
@@ -20,6 +21,7 @@ interface Character {
   xp: number;
   pointsToSpend: number;
   hardcore?: boolean;
+  specialType?: string;
 }
 
 const Index = () => {
@@ -28,11 +30,14 @@ const Index = () => {
   const [savedRoom, setSavedRoom] = useState(0);
   const [showCharacterSelect, setShowCharacterSelect] = useState(false);
   const [selectedCharacterBonus, setSelectedCharacterBonus] = useState<any>(null);
+  const [selectedSpecialType, setSelectedSpecialType] = useState<string>('normal');
   const [isAftermatch, setIsAftermatch] = useState(false);
   const [showSandbox, setShowSandbox] = useState(false);
   const [showCharactersTab, setShowCharactersTab] = useState(false);
-  const [testCharacterMode, setTestCharacterMode] = useState<string | null>(null);
-  const progress = getGameProgress();
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [progress, setProgress] = useState(getGameProgress());
+
+  const refreshProgress = () => setProgress(getGameProgress());
 
   const handleStartGame = (char: Character) => {
     // Check for sandbox unlock cheat
@@ -41,7 +46,7 @@ const Index = () => {
       return;
     }
     
-    // Check for character test mode: modogoku, modosonic, etc.
+    // Check for character test modes
     const nomeLower = char.nome.toLowerCase();
     
     if (nomeLower === 'modogoku') {
@@ -55,6 +60,7 @@ const Index = () => {
         poderDeFogo: 999,
         vida: 999999,
         arma: 'Goku',
+        specialType: 'goku',
       };
       setCharacter(testChar);
       setGameStarted(true);
@@ -67,78 +73,103 @@ const Index = () => {
         nome: 'Sonic (Teste)',
         destreza: 9999,
         vida: char.constituicao * 2 + 10,
+        specialType: 'sonic',
       };
       setCharacter(testChar);
       setGameStarted(true);
       return;
     }
-    
-    if (nomeLower === 'modoguerreiro') {
+
+    if (nomeLower === 'modosukuna') {
       const testChar: Character = {
         ...char,
-        nome: 'Guerreiro (Teste)',
+        nome: 'Sukuna (Teste)',
+        specialType: 'sukuna',
       };
       setCharacter(testChar);
       setGameStarted(true);
       return;
     }
-    
-    if (nomeLower === 'modoarqueiro') {
+
+    if (nomeLower === 'modoluffy') {
       const testChar: Character = {
         ...char,
-        nome: 'Arqueiro Sombrio (Teste)',
-        destreza: char.destreza + 5,
-        poderDeFogo: char.poderDeFogo + 3,
+        nome: 'Luffy (Teste)',
+        specialType: 'luffy',
       };
       setCharacter(testChar);
       setGameStarted(true);
       return;
     }
-    
-    if (nomeLower === 'modomago') {
+
+    if (nomeLower === 'modoyi') {
       const testChar: Character = {
         ...char,
-        nome: 'Mago das Sombras (Teste)',
-        inteligencia: char.inteligencia + 8,
-        poderDeFogo: char.poderDeFogo + 4,
+        nome: 'Yi (Teste)',
+        vida: 5,
+        specialType: 'yi',
       };
       setCharacter(testChar);
       setGameStarted(true);
       return;
     }
-    
-    if (nomeLower === 'modopaladino') {
+
+    if (nomeLower === 'modogojo') {
       const testChar: Character = {
         ...char,
-        nome: 'Paladino (Teste)',
-        forca: char.forca + 6,
-        constituicao: char.constituicao + 6,
-        vida: (char.constituicao + 6) * 2 + 10,
-        armadura: char.constituicao + 6 + 10,
+        nome: 'Gojo (Teste)',
+        specialType: 'gojo',
       };
       setCharacter(testChar);
       setGameStarted(true);
       return;
     }
-    
-    if (nomeLower === 'modolorde') {
+
+    if (nomeLower === 'modomario') {
       const testChar: Character = {
         ...char,
-        nome: 'Lorde das Sombras (Teste)',
-        forca: char.forca + 10,
-        destreza: char.destreza + 10,
-        constituicao: char.constituicao + 10,
-        inteligencia: char.inteligencia + 10,
-        poderDeFogo: char.poderDeFogo + 10,
-        vida: (char.constituicao + 10) * 2 + 10,
-        armadura: char.constituicao + 10 + 10,
+        nome: 'Mario (Teste)',
+        specialType: 'mario',
+      };
+      setCharacter(testChar);
+      setGameStarted(true);
+      return;
+    }
+
+    if (nomeLower === 'modoguest') {
+      const testChar: Character = {
+        ...char,
+        nome: 'Guest 1337 (Teste)',
+        specialType: 'guest1337',
+      };
+      setCharacter(testChar);
+      setGameStarted(true);
+      return;
+    }
+
+    if (nomeLower === 'modochronos') {
+      const testChar: Character = {
+        ...char,
+        nome: 'CHRONOS (Teste)',
+        specialType: 'chronos',
       };
       setCharacter(testChar);
       setGameStarted(true);
       return;
     }
     
-    setCharacter(char);
+    // Apply special type from character selection
+    const finalChar: Character = {
+      ...char,
+      specialType: selectedSpecialType,
+    };
+    
+    // Yi always has 5 HP and 9 lives (handled in GameArea)
+    if (selectedSpecialType === 'yi') {
+      finalChar.vida = 5;
+    }
+    
+    setCharacter(finalChar);
     setGameStarted(true);
   };
 
@@ -149,18 +180,24 @@ const Index = () => {
   const handleReturnToSheet = (currentRoom: number, resetCharacter: boolean = false) => {
     setSavedRoom(currentRoom);
     setGameStarted(false);
-    // Se resetCharacter for true (morte ou vitória), reseta o personagem completamente
     if (resetCharacter) {
       setCharacter(null);
       setSelectedCharacterBonus(null);
+      setSelectedSpecialType('normal');
       setIsAftermatch(false);
+      refreshProgress();
     }
   };
   
-  const handleCharacterSelect = (selectedChar: any) => {
-    setSelectedCharacterBonus(selectedChar.bonus);
-    setIsAftermatch(selectedChar.id === 5);
+  const handleCharacterSelect = (selectedChar: SpecialCharacter) => {
+    setSelectedSpecialType(selectedChar.specialType);
     setShowCharacterSelect(false);
+  };
+
+  const handleResetProgress = () => {
+    resetGameProgress();
+    refreshProgress();
+    setShowResetConfirm(false);
   };
 
   if (showSandbox) {
@@ -179,60 +216,29 @@ const Index = () => {
             🎭 PERSONAGENS 🎭
           </h1>
           <p className="text-foreground text-xl text-center mb-4">
-            Esta funcionalidade está em desenvolvimento!
+            Selecione um personagem para jogar!
           </p>
           <p className="text-muted-foreground text-center mb-8">
-            Em breve você poderá desbloquear personagens especiais baseado nas suas conquistas.
+            Vitórias: {progress.totalVictories} | Hardcore: {progress.hardcoreVictories}
           </p>
           
-          {/* Preview dos personagens */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
-              <p className="text-primary font-bold">🔒 Goku</p>
-              <p className="text-muted-foreground text-sm">Requer 10 vitórias</p>
-            </div>
-            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
-              <p className="text-blue-700 font-bold">🔒 Sonic</p>
-              <p className="text-muted-foreground text-sm">Requer 10 vitórias</p>
-            </div>
-            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
-              <p className="text-red-700 font-bold">🔒 Luffy</p>
-              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
-            </div>
-            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
-              <p className="text-purple-700 font-bold">🔒 Sukuna</p>
-              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
-            </div>
-            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
-              <p className="text-green-700 font-bold">🔒 Yi</p>
-              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
-            </div>
-            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
-              <p className="text-cyan-700 font-bold">🔒 Gojo</p>
-              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
-            </div>
-            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
-              <p className="text-red-600 font-bold">🔒 Mario</p>
-              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
-            </div>
-            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
-              <p className="text-gray-700 font-bold">🔒 Guest 1337</p>
-              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
-            </div>
-            <div className="bg-muted p-4 rounded-sm border-2 border-border text-center">
-              <p className="text-amber-600 font-bold">🔒 CHRONOS</p>
-              <p className="text-muted-foreground text-sm">Em desenvolvimento</p>
-            </div>
-          </div>
-          
           <div className="flex flex-col gap-4">
+            <Button
+              onClick={() => {
+                setShowCharactersTab(false);
+                setShowCharacterSelect(true);
+              }}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground text-xl px-8 py-4 font-bold"
+            >
+              🎮 ESCOLHER PERSONAGEM
+            </Button>
             {progress.totalVictories >= 3 && (
               <Button
                 onClick={() => {
                   setShowCharactersTab(false);
                   setShowSandbox(true);
                 }}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground text-xl px-8 py-4 font-bold"
+                className="bg-accent hover:bg-accent/90 text-accent-foreground text-xl px-8 py-4 font-bold"
               >
                 🎮 SANDBOX
               </Button>
@@ -245,7 +251,7 @@ const Index = () => {
             )}
             <Button
               onClick={() => setShowCharactersTab(false)}
-              className="bg-accent hover:bg-accent/90 text-accent-foreground text-xl px-8 py-4 font-bold"
+              className="bg-secondary hover:bg-secondary/90 text-secondary-foreground text-xl px-8 py-4 font-bold"
             >
               ⬅️ VOLTAR
             </Button>
@@ -264,22 +270,59 @@ const Index = () => {
     );
   }
 
-  // Verifica se está no modo impossível (hardcore ativo na criação ou aftermatch)
-  // Também verifica se acabou de sair do modo impossível (não mostra botão se isAftermatch estiver ativo)
+  // Reset confirmation modal
+  if (showResetConfirm) {
+    return (
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className="bg-gradient-to-b from-gray-900 to-black border-4 border-red-500 rounded-lg p-8 max-w-md">
+          <h2 className="text-2xl font-bold text-red-500 mb-4 text-center">⚠️ REINICIAR PROGRESSO? ⚠️</h2>
+          <p className="text-white text-center mb-6">
+            Você perderá TODAS as suas {progress.totalVictories} vitórias e todos os personagens desbloqueados!
+          </p>
+          <div className="flex gap-4">
+            <Button
+              onClick={() => setShowResetConfirm(false)}
+              className="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-bold"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleResetProgress}
+              className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold"
+            >
+              REINICIAR
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isInHardcoreCreation = character?.hardcore || isAftermatch;
 
   if (!gameStarted) {
     return (
       <div className="relative">
+        {/* Botão de Reiniciar Progresso */}
+        <div className="fixed top-4 left-4 z-50">
+          <Button
+            onClick={() => setShowResetConfirm(true)}
+            className="bg-red-900 hover:bg-red-800 text-red-100 font-bold px-4 py-2 text-sm"
+          >
+            🔄 Reiniciar
+          </Button>
+        </div>
+        
         <CharacterCreation 
           onStartGame={handleStartGame} 
           existingCharacter={character || undefined} 
           selectedCharacterBonus={selectedCharacterBonus}
           isAftermatch={isAftermatch}
+          selectedSpecialType={selectedSpecialType}
         />
         {/* Esconde o botão PERSONAGENS no modo impossível */}
         {!isInHardcoreCreation && (
-          <div className="fixed top-4 left-4 z-50">
+          <div className="fixed top-4 right-4 z-50">
             <Button
               onClick={() => setShowCharactersTab(true)}
               className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-6 py-3"
