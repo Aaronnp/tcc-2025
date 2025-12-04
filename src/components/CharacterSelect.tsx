@@ -25,56 +25,69 @@ export default function CharacterSelect({ onSelect, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-b from-gray-900 to-black border-4 border-yellow-500 rounded-lg p-8 max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-        <h1 className="text-4xl font-bold text-yellow-500 mb-2 text-center">⚔️ SELECIONAR PERSONAGEM ⚔️</h1>
-        <p className="text-white text-center mb-6">
+      <div className="parchment-bg border-4 border-primary rounded-sm p-8 max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <h1 className="text-4xl font-bold text-primary mb-2 text-center cave-glow">⚔️ SELECIONAR PERSONAGEM ⚔️</h1>
+        <p className="text-foreground text-center mb-6 font-bold">
           Vitórias: {progress.totalVictories} | Hardcore: {progress.hardcoreVictories}
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {SPECIAL_CHARACTERS.map((char) => {
             const unlocked = isCharacterUnlocked(char);
+            const inDev = char.inDevelopment;
             return (
               <div 
                 key={char.id}
-                className={`p-4 rounded-lg border-2 ${
-                  unlocked 
-                    ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-yellow-500 hover:border-yellow-300' 
-                    : 'bg-gray-900/50 border-gray-700'
+                className={`p-4 rounded-sm border-4 transition-all duration-300 ${
+                  inDev 
+                    ? 'bg-muted/50 border-muted cursor-not-allowed'
+                    : unlocked 
+                      ? 'parchment-bg border-primary hover:border-accent hover:scale-105' 
+                      : 'bg-muted/30 border-muted'
                 }`}
               >
-                {unlocked && (
+                {unlocked && !inDev && (
                   <div className="flex justify-center mb-2">
                     <img 
                       src={char.sprite} 
                       alt={char.nome} 
-                      className="w-16 h-16 object-contain pixelated"
+                      className="w-16 h-16 object-contain pixelated hover:animate-bounce"
                       style={{ imageRendering: 'pixelated' }}
                     />
                   </div>
                 )}
-                <h3 className={`text-xl font-bold mb-2 ${unlocked ? 'text-yellow-500' : 'text-gray-500'}`}>
-                  {unlocked ? char.nome : '🔒 Trancado'}
+                <h3 className={`text-xl font-bold mb-2 text-center ${
+                  inDev ? 'text-muted-foreground' : unlocked ? 'text-primary cave-glow' : 'text-muted-foreground'
+                }`}>
+                  {inDev ? `🚧 ${char.nome} (Em desenvolvimento)` : unlocked ? char.nome : '🔒 Trancado'}
                 </h3>
-                <p className={`text-sm mb-3 ${unlocked ? 'text-white' : 'text-gray-600'}`}>
-                  {unlocked 
+                <p className={`text-sm mb-3 text-center ${unlocked && !inDev ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  {unlocked || inDev
                     ? char.descricao 
                     : char.requiredHardcoreVictories 
                       ? `Requer ${char.requiredVictories} vitórias + ${char.requiredHardcoreVictories} hardcore`
                       : `Requer ${char.requiredVictories} vitória${char.requiredVictories > 1 ? 's' : ''}`
                   }
                 </p>
-                {char.specialType !== 'normal' && unlocked && (
-                  <p className="text-cyan-400 text-xs mb-2 font-bold">
+                {char.specialType !== 'normal' && unlocked && !inDev && (
+                  <p className="text-accent text-xs mb-2 font-bold text-center">
                     ⚡ Habilidade Especial
                   </p>
                 )}
-                {unlocked && (
+                {unlocked && !inDev && (
                   <Button
                     onClick={() => onSelect(char)}
-                    className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold"
+                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold"
                   >
                     Selecionar
+                  </Button>
+                )}
+                {inDev && (
+                  <Button
+                    disabled
+                    className="w-full bg-muted text-muted-foreground font-bold cursor-not-allowed"
+                  >
+                    Em breve...
                   </Button>
                 )}
               </div>
@@ -84,7 +97,7 @@ export default function CharacterSelect({ onSelect, onClose }: Props) {
         
         <Button
           onClick={onClose}
-          className="w-full bg-red-600 hover:bg-red-500 text-white font-bold"
+          className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold"
         >
           Voltar
         </Button>
