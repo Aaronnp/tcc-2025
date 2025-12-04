@@ -714,13 +714,14 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       return;
     }
     
-    const cooldowns: Record<string, keyof GojoState> = { 
+    const cooldowns: Record<string, 'azulCooldown' | 'vermelhoCooldown' | 'vazioRoxoCooldown' | 'infinitoCooldown'> = { 
       azul: 'azulCooldown', vermelho: 'vermelhoCooldown', 
       vazioRoxo: 'vazioRoxoCooldown', infinito: 'infinitoCooldown' 
     };
     
-    if (attackType !== 'vazioInfinito' && gojoState[cooldowns[attackType]] > 0) {
-      setBattleLog(prev => [...prev, `⏰ Em cooldown: ${gojoState[cooldowns[attackType]]} turnos`]);
+    const cooldownKey = cooldowns[attackType];
+    if (attackType !== 'vazioInfinito' && cooldownKey && gojoState[cooldownKey] > 0) {
+      setBattleLog(prev => [...prev, `⏰ Em cooldown: ${gojoState[cooldownKey]} turnos`]);
       return;
     }
     
