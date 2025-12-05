@@ -17,6 +17,28 @@ import {
   Guest1337State,
   ChronosState
 } from "@/utils/specialCharacters";
+import {
+  playSukunaDesmantelar,
+  playSukunaClevar,
+  playSukunaFuga,
+  playSukunaSantuario,
+  playGojoAzul,
+  playGojoVermelho,
+  playGojoVazioRoxo,
+  playGojoInfinito,
+  playGojoVazioInfinito,
+  playYiCounter,
+  playYiInsert,
+  playYiExplode,
+  playMarioMushroom,
+  playChronosRewind,
+  playChronosTransform,
+  playGuest1337Block,
+  playGuest1337BlockFail,
+  playSonicDodge,
+  playLuffyGear,
+  playNormalAttack
+} from "@/utils/soundEffects";
 import heroSword from "@/assets/hero-sword.png";
 import heroBow from "@/assets/hero-bow.png";
 import heroStaff from "@/assets/hero-staff.png";
@@ -664,6 +686,12 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     setAttackCooldown(true);
     setTimeout(() => setAttackCooldown(false), 3000);
     
+    // Play sound effect
+    if (attackType === 'desmantelar') playSukunaDesmantelar();
+    else if (attackType === 'clevar') playSukunaClevar();
+    else if (attackType === 'fuga') playSukunaFuga();
+    else if (attackType === 'santuario') playSukunaSantuario();
+    
     // Trigger animation
     const animations = { desmantelar: 'sukuna-dismantle', clevar: 'sukuna-cleave', fuga: 'sukuna-flame', santuario: 'sukuna-domain' };
     setSpecialAttackEffect(animations[attackType]);
@@ -684,6 +712,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     setAttackCooldown(true);
     setTimeout(() => setAttackCooldown(false), 3000);
     
+    playYiCounter();
     setSpecialAttackEffect('yi-counter');
     setTimeout(() => setSpecialAttackEffect(null), 500);
     
@@ -707,6 +736,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
   const yiInsert = () => {
     if (!currentEnemy || yiState.currentStep !== 'insert') return;
+    playYiInsert();
     setSpecialAttackEffect('yi-talisman');
     setTimeout(() => setSpecialAttackEffect(null), 800);
     setBattleLog(prev => [...prev, `📍 Yi inseriu o talismã no inimigo!`]);
@@ -715,6 +745,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
   const yiExplode = () => {
     if (!currentEnemy || yiState.currentStep !== 'explode') return;
+    playYiExplode();
     setSpecialAttackEffect('yi-explode');
     setTimeout(() => setSpecialAttackEffect(null), 1000);
     setBattleLog(prev => [...prev, `💥 EXPLOSÃO! 500 de dano garantido!`]);
@@ -746,6 +777,13 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     setAttackCooldown(true);
     setTimeout(() => setAttackCooldown(false), 3000);
     
+    // Play sound effect
+    if (attackType === 'azul') playGojoAzul();
+    else if (attackType === 'vermelho') playGojoVermelho();
+    else if (attackType === 'vazioRoxo') playGojoVazioRoxo();
+    else if (attackType === 'infinito') playGojoInfinito();
+    else if (attackType === 'vazioInfinito') playGojoVazioInfinito();
+    
     // Trigger animation
     const animations: Record<string, string> = { azul: 'gojo-blue', vermelho: 'gojo-red', vazioRoxo: 'gojo-purple', infinito: 'gojo-infinity', vazioInfinito: 'gojo-domain' };
     setSpecialAttackEffect(animations[attackType]);
@@ -774,6 +812,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       setBattleLog(prev => [...prev, `⏰ Cogumelo em cooldown: ${marioState.mushroomCooldown} turnos`]);
       return;
     }
+    playMarioMushroom();
     setSpecialAttackEffect('mario-mushroom');
     setTimeout(() => setSpecialAttackEffect(null), 600);
     setMarioState({ mushroomCooldown: 4, mushroomTurnsActive: 2 });
@@ -788,11 +827,13 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     setTimeout(() => setAttackCooldown(false), 3000);
     
     if (Math.random() < 0.5) {
+      playGuest1337Block();
       setSpecialAttackEffect('block-success');
       setTimeout(() => setSpecialAttackEffect(null), 500);
       setBattleLog(prev => [...prev, `🛡️ BLOQUEIO PERFEITO! Próximo ataque causará dano dobrado!`]);
       setGuest1337State({ nextAttackDouble: true });
     } else {
+      playGuest1337BlockFail();
       setBattleLog(prev => [...prev, `❌ Bloqueio falhou! Turno perdido.`]);
       // Pula turno - inimigo ataca
       const stats = getTotalStats();
@@ -818,6 +859,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       return;
     }
     
+    playChronosRewind();
     setSpecialAttackEffect('chronos-rewind');
     setTimeout(() => setSpecialAttackEffect(null), 1000);
     
@@ -834,6 +876,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const chronosTransform = () => {
     if (!currentEnemy || chronosState.transformUsed) return;
     
+    playChronosTransform();
     setSpecialAttackEffect('chronos-transform');
     setTimeout(() => setSpecialAttackEffect(null), 1500);
     
@@ -1155,6 +1198,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                   {room.isBoss ? '⚠️ BOSS' : '⚠️ Perigo'}
                 </div>
               )}
+              {room.chest && room.actualIndex >= currentRoom && !room.cleared && (
+                <div className="text-xs mt-1 text-amber-600 font-bold">📦 Baú!</div>
+              )}
             </div>
           ))}
         </div>
@@ -1237,10 +1283,8 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                           {luffyState.currentGear > 0 ? 'Desativar' : 'Gears'}
                         </Button>
                       )}
-                      {specialType === 'guest1337' ? (
+                      {specialType === 'guest1337' && (
                         <Button onClick={guest1337Block} disabled={attackCooldown} className="bg-blue-600 hover:bg-blue-500">🛡️ Bloquear</Button>
-                      ) : (
-                        <Button onClick={flee} className="bg-secondary hover:bg-secondary/90">Fugir</Button>
                       )}
                       {/* Boss Inventory Button */}
                       <Button onClick={() => setShowInventoryInBattle(!showInventoryInBattle)} className="bg-amber-600 hover:bg-amber-500">
