@@ -595,6 +595,15 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     if (!playerDodged && gojoState.enemyStunTurns === 0 && !currentEnemy.isBaby) {
       enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
     }
+    
+    // Salvar estado para Chronos poder voltar turno
+    if (specialType === 'chronos' && enemyDamage > 0) {
+      setChronosState(prev => ({ 
+        ...prev, 
+        canRewind: true, 
+        lastTurnState: { enemyHp: currentEnemy.vida, playerHp: character.vida }
+      }));
+    }
 
     if (enemyDodged) {
       setBattleLog(prev => [...prev, `💨 ${currentEnemy.nome} desviou!`]);
@@ -682,20 +691,16 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       setBattleLog(prev => [...prev, `🛡️ COUNTER! Yi bloqueou o ataque e ganhou um talismã!`]);
       setYiState(prev => ({ ...prev, currentStep: 'insert', hasTalisman: true }));
     } else {
-      setBattleLog(prev => [...prev, `❌ Counter falhou!`]);
-      // Enemy attacks
-      const stats = getTotalStats();
-      const enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
-      const newPlayerHp = character.vida - enemyDamage;
-      setBattleLog(prev => [...prev, `💥 Inimigo causou ${enemyDamage}!`]);
-      
-      if (newPlayerHp <= 0) {
-        handlePlayerDeath();
-      } else {
-        const updatedChar = { ...character, vida: newPlayerHp };
-        setCharacter(updatedChar);
-        onCharacterUpdate(updatedChar);
-      }
+      setBattleLog(prev => [...prev, `❌ Counter falhou! Turno perdido.`]);
+      // Yi perdeu uma vida quando falha no counter
+      setYiState(prev => {
+        const newLives = prev.lives - 1;
+        setBattleLog(log => [...log, `💀 Yi perdeu uma vida! Vidas restantes: ${newLives}`]);
+        if (newLives <= 0) {
+          handlePlayerDeath();
+        }
+        return { ...prev, lives: newLives };
+      });
     }
     advanceTurn();
   };
@@ -789,6 +794,19 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       setGuest1337State({ nextAttackDouble: true });
     } else {
       setBattleLog(prev => [...prev, `❌ Bloqueio falhou! Turno perdido.`]);
+      // Pula turno - inimigo ataca
+      const stats = getTotalStats();
+      const enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
+      const newPlayerHp = character.vida - enemyDamage;
+      setBattleLog(prev => [...prev, `💥 Inimigo atacou e causou ${enemyDamage} de dano!`]);
+      
+      if (newPlayerHp <= 0) {
+        handlePlayerDeath();
+      } else {
+        const updatedChar = { ...character, vida: newPlayerHp };
+        setCharacter(updatedChar);
+        onCharacterUpdate(updatedChar);
+      }
     }
     advanceTurn();
   };
@@ -1145,102 +1163,223 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         {character.vida > 0 && (
           <>
             {inBattle && currentEnemy ? (
-              <div className={`parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[700px] ${isInfernoMode ? 'border-red-900 bg-red-950/80' : ''}`}>
-                <h3 className="text-xl font-bold mb-4">⚔️ Batalha: {currentEnemy.nome}</h3>
-                <div className="flex items-center justify-between gap-8 relative">
-                  {/* Player */}
-                  <div className="flex flex-col items-center">
-                    <div className={`relative ${
-                      specialType === 'luffy' && luffyState.currentGear === 2 ? 'animate-luffy-gear2' :
-                      specialType === 'luffy' && luffyState.currentGear === 3 ? 'animate-luffy-gear3' :
-                      specialType === 'luffy' && luffyState.currentGear === 4 ? 'animate-luffy-gear4' :
-                      specialType === 'luffy' && luffyState.currentGear === 5 ? 'animate-luffy-gear5' :
-                      specialType === 'gojo' && gojoState.infinitoTurnsActive > 0 ? 'animate-gojo-infinity' : ''
-                    }`}>
-                      <img src={getHeroSprite()} alt={character.nome} className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`} style={{ imageRendering: 'pixelated' }} />
+              isBossBattle ? (
+                /* Boss Battle - Full Screen Style */
+                <div className="fixed inset-0 z-40 flex flex-col" style={{ backgroundImage: `url(${getBossBackground(currentEnemy.nome)})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                  <div className="absolute inset-0 bg-black/40" />
+                  <div className="relative z-10 flex flex-col h-full p-8">
+                    <h2 className="text-4xl font-bold text-white text-center mb-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                      ⚔️ BOSS: {currentEnemy.nome} ⚔️
+                    </h2>
+                    
+                    <div className="flex-1 flex items-center justify-around">
+                      {/* Player Side */}
+                      <div className="flex flex-col items-center bg-black/60 p-6 rounded-lg border-4 border-blue-500">
+                        <div className={`relative ${
+                          specialType === 'luffy' && luffyState.currentGear === 2 ? 'animate-luffy-gear2' :
+                          specialType === 'luffy' && luffyState.currentGear === 3 ? 'animate-luffy-gear3' :
+                          specialType === 'luffy' && luffyState.currentGear === 4 ? 'animate-luffy-gear4' :
+                          specialType === 'luffy' && luffyState.currentGear === 5 ? 'animate-luffy-gear5' :
+                          specialType === 'gojo' && gojoState.infinitoTurnsActive > 0 ? 'animate-gojo-infinity' : ''
+                        }`}>
+                          <img src={getHeroSprite()} alt={character.nome} className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`} style={{ imageRendering: 'pixelated' }} />
+                        </div>
+                        <div className="mt-2 text-center text-white font-bold">
+                          <div className="text-xl">{character.nome}</div>
+                          <div className="text-lg">{specialType === 'yi' ? `Vidas: ${yiState.lives}` : `HP: ${character.vida}`}</div>
+                          {specialType === 'luffy' && luffyState.currentGear > 0 && <div className="text-orange-400">⚡ GEAR {luffyState.currentGear}</div>}
+                          {specialType === 'gojo' && gojoState.infinitoTurnsActive > 0 && <div className="text-cyan-400">♾️ Infinito: {gojoState.infinitoTurnsActive}t</div>}
+                        </div>
+                      </div>
+                      
+                      {/* Special Effects */}
+                      {specialAttackEffect && (
+                        <div className={`absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none`}>
+                          {specialAttackEffect === 'sukuna-cleave' && <div className="text-8xl animate-pulse">🔪</div>}
+                          {specialAttackEffect === 'sukuna-dismantle' && <div className="text-8xl animate-pulse">✂️</div>}
+                          {specialAttackEffect === 'sukuna-flame' && <div className="text-8xl animate-pulse">🔥</div>}
+                          {specialAttackEffect === 'sukuna-domain' && <div className="text-6xl text-red-500 font-bold animate-pulse">SANTUÁRIO MALEVOLENTE</div>}
+                          {specialAttackEffect === 'gojo-blue' && <div className="w-32 h-32 rounded-full bg-blue-500 shadow-[0_0_60px_30px_rgba(59,130,246,0.8)]"></div>}
+                          {specialAttackEffect === 'gojo-red' && <div className="w-24 h-24 rounded-full bg-red-500 shadow-[0_0_60px_30px_rgba(239,68,68,0.8)]"></div>}
+                          {specialAttackEffect === 'gojo-purple' && <div className="w-40 h-40 rounded-full bg-purple-600 shadow-[0_0_80px_40px_rgba(147,51,234,0.8)]"></div>}
+                          {specialAttackEffect === 'gojo-infinity' && <div className="text-8xl animate-spin">♾️</div>}
+                          {specialAttackEffect === 'gojo-domain' && <div className="text-6xl text-indigo-400 font-bold animate-pulse">VAZIO INFINITO</div>}
+                        </div>
+                      )}
+                      
+                      {kamehamehaAnimation && (
+                        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl font-bold text-yellow-400 animate-pulse z-20">
+                          ⚡ KAMEHAMEHA! ⚡
+                        </div>
+                      )}
+                      
+                      {/* Boss Side */}
+                      <div className="flex flex-col items-center bg-black/60 p-6 rounded-lg border-4 border-red-500">
+                        <div className={`relative ${specialAttackEffect === 'chronos-transform' ? 'animate-chronos-transform' : ''}`}>
+                          <img src={currentEnemy.foto} alt={currentEnemy.nome} className={`w-64 h-64 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`} style={{ imageRendering: 'pixelated' }} />
+                        </div>
+                        <div className="mt-2 text-center text-white">
+                          <div className="text-xl font-bold text-red-400">{currentEnemy.nome}</div>
+                          <div className="text-lg">HP: {currentEnemy.vida}</div>
+                          {gojoState.enemyStunTurns > 0 && <div className="text-purple-400">Paralisado: {gojoState.enemyStunTurns}t</div>}
+                        </div>
+                      </div>
                     </div>
-                    <div className="mt-2 text-center font-bold">
-                      <div>{character.nome}</div>
-                      <div>{specialType === 'yi' ? `Vidas: ${yiState.lives}` : `HP: ${character.vida}`}</div>
+                    
+                    {/* Boss Battle Controls */}
+                    <div className="mt-4 flex flex-wrap justify-center gap-2 bg-black/70 p-4 rounded-lg">
+                      <Button onClick={attack} disabled={attackCooldown || (specialType === 'luffy' && luffyState.stunTurns > 0)} className="bg-destructive hover:bg-destructive/90 text-white font-bold">
+                        {isGokuMode ? '⚡ Kamehameha' : 'Atacar'} {attackCooldown && ' (3s)'}
+                      </Button>
+                      {renderSpecialAttacks()}
+                      {specialType === 'luffy' && (
+                        <Button onClick={() => luffyState.currentGear > 0 ? setLuffyState(prev => ({ ...prev, currentGear: 0, gearTurnsActive: 0 })) : setLuffyState(prev => ({ ...prev, gearMenuOpen: !prev.gearMenuOpen }))} className="bg-red-600 hover:bg-red-500">
+                          {luffyState.currentGear > 0 ? 'Desativar' : 'Gears'}
+                        </Button>
+                      )}
+                      {specialType === 'guest1337' ? (
+                        <Button onClick={guest1337Block} disabled={attackCooldown} className="bg-blue-600 hover:bg-blue-500">🛡️ Bloquear</Button>
+                      ) : (
+                        <Button onClick={flee} className="bg-secondary hover:bg-secondary/90">Fugir</Button>
+                      )}
+                      {/* Boss Inventory Button */}
+                      <Button onClick={() => setShowInventoryInBattle(!showInventoryInBattle)} className="bg-amber-600 hover:bg-amber-500">
+                        🎒 Itens
+                      </Button>
                     </div>
-                  </div>
-                  
-                  {/* Special Attack Effects */}
-                  {specialAttackEffect && (
-                    <div className={`absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none animate-${specialAttackEffect}`}>
-                      {specialAttackEffect === 'sukuna-cleave' && <div className="text-8xl">🔪</div>}
-                      {specialAttackEffect === 'sukuna-dismantle' && <div className="text-8xl">✂️</div>}
-                      {specialAttackEffect === 'sukuna-flame' && <div className="text-8xl">🔥</div>}
-                      {specialAttackEffect === 'sukuna-domain' && <div className="text-6xl text-red-900 font-bold bg-red-500/30 p-8 rounded-full">SANTUÁRIO</div>}
-                      {specialAttackEffect === 'gojo-blue' && <div className="w-24 h-24 rounded-full bg-blue-500 shadow-[0_0_30px_15px_rgba(59,130,246,0.8)]"></div>}
-                      {specialAttackEffect === 'gojo-red' && <div className="w-16 h-16 rounded-full bg-red-500 shadow-[0_0_30px_15px_rgba(239,68,68,0.8)]"></div>}
-                      {specialAttackEffect === 'gojo-purple' && <div className="w-32 h-32 rounded-full bg-purple-600 shadow-[0_0_50px_25px_rgba(147,51,234,0.8)]"></div>}
-                      {specialAttackEffect === 'gojo-infinity' && <div className="text-8xl">♾️</div>}
-                      {specialAttackEffect === 'gojo-domain' && <div className="text-6xl text-indigo-400 font-bold">VAZIO INFINITO</div>}
-                      {specialAttackEffect === 'yi-counter' && <div className="text-8xl">🛡️</div>}
-                      {specialAttackEffect === 'yi-talisman' && <div className="text-8xl">📜</div>}
-                      {specialAttackEffect === 'yi-explode' && <div className="w-32 h-32 rounded-full bg-orange-500 shadow-[0_0_50px_25px_rgba(255,165,0,0.8)]"></div>}
-                      {specialAttackEffect === 'mario-mushroom' && <div className="text-8xl">🍄</div>}
-                      {specialAttackEffect === 'chronos-rewind' && <div className="text-8xl">⏰</div>}
-                      {specialAttackEffect === 'chronos-transform' && <div className="text-6xl">👶</div>}
-                      {specialAttackEffect === 'block-success' && <div className="text-8xl">🛡️✨</div>}
-                    </div>
-                  )}
-                  
-                  {kamehamehaAnimation && (
-                    <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl font-bold text-yellow-400 animate-pulse z-20">
-                      ⚡ KAMEHAMEHA! ⚡
-                    </div>
-                  )}
-                  
-                  {/* Enemy */}
-                  <div className="flex flex-col items-center">
-                    <div className={`relative ${specialAttackEffect === 'chronos-transform' ? 'animate-chronos-transform' : ''}`}>
-                      <img src={currentEnemy.foto} alt={currentEnemy.nome} className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`} style={{ imageRendering: 'pixelated' }} />
-                    </div>
-                    <div className="mt-2 text-center text-sm">
-                      <div className="font-bold">{currentEnemy.nome}</div>
-                      <div>HP: {currentEnemy.vida}</div>
-                      {gojoState.enemyStunTurns > 0 && <div className="text-purple-600 font-bold">Paralisado: {gojoState.enemyStunTurns}t</div>}
+                    
+                    {renderLuffyGearMenu()}
+                    
+                    {/* Inventory Popup for Boss */}
+                    {showInventoryInBattle && inventory.length > 0 && (
+                      <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 bg-black/90 border-4 border-amber-500 p-4 rounded-lg z-50 max-w-md">
+                        <h4 className="text-white font-bold mb-2">🎒 Inventário</h4>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {inventory.map((item, index) => (
+                            <div key={index} className="flex justify-between items-center text-white border-b border-amber-500/50 pb-1">
+                              <span>{item.nome}</span>
+                              {item.tipo === 'pocao' ? (
+                                <Button onClick={() => usePotion(item, index)} size="sm" className="bg-green-600 text-xs">Usar</Button>
+                              ) : item.tipo === 'especial' && item.especial === 'mantra_sombras' ? (
+                                <Button onClick={() => useMantra(index)} size="sm" className="bg-purple-600 text-xs" disabled={mantraActive}>
+                                  {mantraActive ? 'Ativa' : 'Usar Mantra'}
+                                </Button>
+                              ) : (
+                                <Button onClick={() => equipItem(item)} size="sm" className="bg-accent text-xs">Equipar</Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <Button onClick={() => setShowInventoryInBattle(false)} className="mt-2 w-full bg-red-600">Fechar</Button>
+                      </div>
+                    )}
+                    
+                    {/* Battle Log for Boss */}
+                    <div className="absolute top-4 right-4 bg-black/80 border-2 border-primary p-4 rounded-lg max-w-xs max-h-48 overflow-y-auto flex flex-col-reverse">
+                      <h4 className="text-white font-bold mb-2">📜 Log</h4>
+                      {battleLog.slice(-7).reverse().map((log, index) => <div key={index} className="text-white text-sm">{log}</div>)}
                     </div>
                   </div>
                 </div>
-                
-                <div className="mt-6 flex flex-wrap gap-2">
-                  <Button onClick={attack} disabled={attackCooldown || (specialType === 'luffy' && luffyState.stunTurns > 0)} className={`bg-destructive hover:bg-destructive/90 ${attackCooldown ? 'opacity-50' : ''}`}>
-                    {isGokuMode ? '⚡ Kamehameha' : 'Atacar'}
-                    {attackCooldown && ' (3s)'}
-                  </Button>
+              ) : (
+                /* Normal Battle */
+                <div className={`parchment-bg p-6 rounded-sm border-4 border-primary mb-8 inline-block min-w-[700px] ${isInfernoMode ? 'border-red-900 bg-red-950/80' : ''}`}>
+                  <h3 className="text-xl font-bold mb-4">⚔️ Batalha: {currentEnemy.nome}</h3>
+                  <div className="flex items-center justify-between gap-8 relative">
+                    {/* Player */}
+                    <div className="flex flex-col items-center">
+                      <div className={`relative ${
+                        specialType === 'luffy' && luffyState.currentGear === 2 ? 'animate-luffy-gear2' :
+                        specialType === 'luffy' && luffyState.currentGear === 3 ? 'animate-luffy-gear3' :
+                        specialType === 'luffy' && luffyState.currentGear === 4 ? 'animate-luffy-gear4' :
+                        specialType === 'luffy' && luffyState.currentGear === 5 ? 'animate-luffy-gear5' :
+                        specialType === 'gojo' && gojoState.infinitoTurnsActive > 0 ? 'animate-gojo-infinity' : ''
+                      }`}>
+                        <img src={getHeroSprite()} alt={character.nome} className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`} style={{ imageRendering: 'pixelated' }} />
+                      </div>
+                      <div className="mt-2 text-center font-bold">
+                        <div>{character.nome}</div>
+                        <div>{specialType === 'yi' ? `Vidas: ${yiState.lives}` : `HP: ${character.vida}`}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Special Attack Effects */}
+                    {specialAttackEffect && (
+                      <div className={`absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none animate-${specialAttackEffect}`}>
+                        {specialAttackEffect === 'sukuna-cleave' && <div className="text-8xl">🔪</div>}
+                        {specialAttackEffect === 'sukuna-dismantle' && <div className="text-8xl">✂️</div>}
+                        {specialAttackEffect === 'sukuna-flame' && <div className="text-8xl">🔥</div>}
+                        {specialAttackEffect === 'sukuna-domain' && <div className="text-6xl text-red-900 font-bold bg-red-500/30 p-8 rounded-full">SANTUÁRIO</div>}
+                        {specialAttackEffect === 'gojo-blue' && <div className="w-24 h-24 rounded-full bg-blue-500 shadow-[0_0_30px_15px_rgba(59,130,246,0.8)]"></div>}
+                        {specialAttackEffect === 'gojo-red' && <div className="w-16 h-16 rounded-full bg-red-500 shadow-[0_0_30px_15px_rgba(239,68,68,0.8)]"></div>}
+                        {specialAttackEffect === 'gojo-purple' && <div className="w-32 h-32 rounded-full bg-purple-600 shadow-[0_0_50px_25px_rgba(147,51,234,0.8)]"></div>}
+                        {specialAttackEffect === 'gojo-infinity' && <div className="text-8xl">♾️</div>}
+                        {specialAttackEffect === 'gojo-domain' && <div className="text-6xl text-indigo-400 font-bold">VAZIO INFINITO</div>}
+                        {specialAttackEffect === 'yi-counter' && <div className="text-8xl">🛡️</div>}
+                        {specialAttackEffect === 'yi-talisman' && <div className="text-8xl">📜</div>}
+                        {specialAttackEffect === 'yi-explode' && <div className="w-32 h-32 rounded-full bg-orange-500 shadow-[0_0_50px_25px_rgba(255,165,0,0.8)]"></div>}
+                        {specialAttackEffect === 'mario-mushroom' && <div className="text-8xl">🍄</div>}
+                        {specialAttackEffect === 'chronos-rewind' && <div className="text-8xl">⏰</div>}
+                        {specialAttackEffect === 'chronos-transform' && <div className="text-6xl">👶</div>}
+                        {specialAttackEffect === 'block-success' && <div className="text-8xl">🛡️✨</div>}
+                      </div>
+                    )}
+                    
+                    {kamehamehaAnimation && (
+                      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl font-bold text-yellow-400 animate-pulse z-20">
+                        ⚡ KAMEHAMEHA! ⚡
+                      </div>
+                    )}
+                    
+                    {/* Enemy */}
+                    <div className="flex flex-col items-center">
+                      <div className={`relative ${specialAttackEffect === 'chronos-transform' ? 'animate-chronos-transform' : ''}`}>
+                        <img src={currentEnemy.foto} alt={currentEnemy.nome} className={`w-48 h-48 object-contain pixelated ${attackAnimation ? 'animate-shake' : ''}`} style={{ imageRendering: 'pixelated' }} />
+                      </div>
+                      <div className="mt-2 text-center text-sm">
+                        <div className="font-bold">{currentEnemy.nome}</div>
+                        <div>HP: {currentEnemy.vida}</div>
+                        {gojoState.enemyStunTurns > 0 && <div className="text-purple-600 font-bold">Paralisado: {gojoState.enemyStunTurns}t</div>}
+                      </div>
+                    </div>
+                  </div>
                   
-                  {renderSpecialAttacks()}
-                  
-                  {specialType === 'luffy' && (
-                    <Button 
-                      onClick={() => {
-                        if (luffyState.currentGear > 0) {
-                          setLuffyState(prev => ({ ...prev, currentGear: 0, gearTurnsActive: 0 }));
-                          setBattleLog(prev => [...prev, '💨 Gear desativado!']);
-                        } else {
-                          setLuffyState(prev => ({ ...prev, gearMenuOpen: !prev.gearMenuOpen }));
-                        }
-                      }}
-                      className="bg-red-600 hover:bg-red-500"
-                    >
-                      {luffyState.currentGear > 0 ? 'Desativar' : 'Gears'}
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    <Button onClick={attack} disabled={attackCooldown || (specialType === 'luffy' && luffyState.stunTurns > 0)} className={`bg-destructive hover:bg-destructive/90 ${attackCooldown ? 'opacity-50' : ''}`}>
+                      {isGokuMode ? '⚡ Kamehameha' : 'Atacar'}
+                      {attackCooldown && ' (3s)'}
                     </Button>
-                  )}
+                    
+                    {renderSpecialAttacks()}
+                    
+                    {specialType === 'luffy' && (
+                      <Button 
+                        onClick={() => {
+                          if (luffyState.currentGear > 0) {
+                            setLuffyState(prev => ({ ...prev, currentGear: 0, gearTurnsActive: 0 }));
+                            setBattleLog(prev => [...prev, '💨 Gear desativado!']);
+                          } else {
+                            setLuffyState(prev => ({ ...prev, gearMenuOpen: !prev.gearMenuOpen }));
+                          }
+                        }}
+                        className="bg-red-600 hover:bg-red-500"
+                      >
+                        {luffyState.currentGear > 0 ? 'Desativar' : 'Gears'}
+                      </Button>
+                    )}
+                    
+                    {specialType === 'guest1337' ? (
+                      <Button onClick={guest1337Block} disabled={attackCooldown} className="bg-blue-600 hover:bg-blue-500">
+                        🛡️ Bloquear
+                      </Button>
+                    ) : (
+                      <Button onClick={flee} className="bg-secondary hover:bg-secondary/90">Fugir</Button>
+                    )}
+                  </div>
                   
-                  {specialType === 'guest1337' ? (
-                    <Button onClick={guest1337Block} disabled={attackCooldown} className="bg-blue-600 hover:bg-blue-500">
-                      🛡️ Bloquear
-                    </Button>
-                  ) : (
-                    <Button onClick={flee} className="bg-secondary hover:bg-secondary/90">Fugir</Button>
-                  )}
+                  {renderLuffyGearMenu()}
                 </div>
-                
-                {renderLuffyGearMenu()}
-              </div>
+              )
             ) : (
               <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block min-w-[400px] ${isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'}`}>
                 <h3 className="text-xl font-bold mb-4">🎮 Controles</h3>
@@ -1281,8 +1420,8 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         {battleLog.length > 0 && (
           <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block max-w-2xl ml-4 align-top ${isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'}`}>
             <h3 className="text-lg font-bold mb-4">📜 Log</h3>
-            <div className="text-sm space-y-1 max-h-48 overflow-y-auto">
-              {battleLog.slice(-15).map((log, index) => <div key={index}>{log}</div>)}
+            <div className="text-sm space-y-1 max-h-48 overflow-y-auto flex flex-col-reverse">
+              {battleLog.slice(-7).reverse().map((log, index) => <div key={index}>{log}</div>)}
             </div>
           </div>
         )}

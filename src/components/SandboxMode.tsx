@@ -20,6 +20,7 @@ import heroYi from "@/assets/hero-yi.png";
 import heroGojo from "@/assets/hero-gojo.png";
 import heroMario from "@/assets/hero-mario.png";
 import heroChronos from "@/assets/hero-chronos.png";
+import heroGuest1337 from "@/assets/hero-guest1337.png";
 import enemySkeleton from "@/assets/enemy-skeleton.png";
 import enemyGoblin from "@/assets/enemy-goblin.png";
 import enemyShadow from "@/assets/enemy-shadow.png";
@@ -109,7 +110,7 @@ const WEAPON_SPRITES: Record<string, string> = {
   'Yi': heroYi,
   'Gojo': heroGojo,
   'Mario': heroMario,
-  'Guest 1337': heroSword,
+  'Guest 1337': heroGuest1337,
   'Chronos': heroChronos,
 };
 
@@ -421,12 +422,14 @@ export default function SandboxMode({ onExit }: Props) {
       return;
     }
     
-    // Luffy Gear 5 dodge
+    // Luffy Gear 5: alta chance de dodge, mas não 100%
     if (selectedCharacter.specialType === 'luffy' && luffyState.currentGear === 5) {
-      setBattleLog(prev => [...prev, `💨 ${selectedCharacter.nome} desviou com Gear 5!`]);
-      setAttackCooldown(false);
-      setIsPlayerTurn(true);
-      return;
+      if (Math.random() < 0.8) { // 80% chance de dodge
+        setBattleLog(prev => [...prev, `💨 ${selectedCharacter.nome} desviou com Gear 5!`]);
+        setAttackCooldown(false);
+        setIsPlayerTurn(true);
+        return;
+      }
     }
     
     // Normal dodge check
@@ -439,6 +442,15 @@ export default function SandboxMode({ onExit }: Props) {
     if (playerDodged) {
       setBattleLog(prev => [...prev, `💨 ${selectedCharacter.nome} desviou do ataque!`]);
     } else {
+      // Salvar estado para Chronos poder voltar
+      if (selectedCharacter.specialType === 'chronos') {
+        setChronosState(prev => ({ 
+          ...prev, 
+          canRewind: true, 
+          lastTurnState: { savedPlayerHp: playerHp, savedEnemyHp: enemyHp }
+        }));
+      }
+      
       // Yi life system
       if (selectedCharacter.specialType === 'yi') {
         setYiState(prev => {
@@ -564,12 +576,23 @@ export default function SandboxMode({ onExit }: Props) {
     if (success) {
       setYiState(prev => ({ ...prev, currentStep: 'insert', hasTalisman: true }));
       setBattleLog(prev => [...prev, `🛡️ COUNTER SUCESSO! Você ganhou um talismã!`]);
+      setAttackCooldown(false);
+      setIsPlayerTurn(true);
     } else {
-      setBattleLog(prev => [...prev, `❌ Counter falhou!`]);
+      setBattleLog(prev => [...prev, `❌ Counter falhou! Turno perdido.`]);
+      // Yi perde uma vida quando falha
+      setYiState(prev => {
+        const newLives = prev.lives - 1;
+        setBattleLog(log => [...log, `💀 Yi perdeu uma vida! Vidas restantes: ${newLives}`]);
+        if (newLives <= 0) {
+          setPlayerHp(0);
+          setBattleLog(log => [...log, `💀 ${selectedCharacter.nome} foi derrotado! 💀`]);
+        }
+        return { ...prev, lives: newLives };
+      });
+      advanceTurn();
+      setTimeout(() => handleEnemyTurn(), 1500);
     }
-    
-    advanceTurn();
-    setTimeout(() => handleEnemyTurn(), 1500);
   };
 
   const yiInsert = () => {
@@ -635,6 +658,19 @@ export default function SandboxMode({ onExit }: Props) {
   };
 
   // Chronos abilities
+  const chronosRewind = () => {
+    if (!chronosState.canRewind || !chronosState.lastTurnState) {
+      setBattleLog(prev => [...prev, `❌ Não é possível voltar no tempo agora!`]);
+      return;
+    }
+    
+    const { savedPlayerHp, savedEnemyHp } = chronosState.lastTurnState;
+    setPlayerHp(savedPlayerHp);
+    setEnemyHp(savedEnemyHp);
+    setChronosState(prev => ({ ...prev, canRewind: false }));
+    setBattleLog(prev => [...prev, `⏰ CHRONOS voltou no tempo! Dano anulado!`]);
+  };
+  
   const chronosTransform = () => {
     if (chronosState.transformUsed || !selectedEnemy || attackCooldown) return;
     
@@ -865,7 +901,7 @@ export default function SandboxMode({ onExit }: Props) {
                 <h2 className="text-3xl font-bold text-red-800 mb-4 text-center">Escolher inimigo</h2>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {createdEnemies.map((enemy, idx) => (
-                    <div key={idx} onClick={() => setSelectedEnemy(enemy)} className={`p-4 rounded-sm cursor-pointer transition-all border-2 flex items-center gap-4 ${selectedEnemy?.nome === enemy.nome ? 'bg-red-200 border-red-600' : 'bg-muted hover:bg-muted/80 border-border'}`}>
+                    <div key={idx} onClick={() => setSelectedEnemy(enemy)} className={`p-4 rounded-sm cursor-pointer transition-all border-2 flex items-center gap-4 ${selectedEnemy === enemy ? 'bg-red-200 border-red-600' : 'bg-muted hover:bg-muted/80 border-border'}`}>
                       <img src={getEnemySprite(enemy.imagem)} alt={enemy.nome} className="w-12 h-12 object-contain" style={{ imageRendering: 'pixelated' }} />
                       <div>
                         <p className="text-foreground font-bold">{enemy.nome}</p>
@@ -879,7 +915,7 @@ export default function SandboxMode({ onExit }: Props) {
                 <h2 className="text-3xl font-bold text-blue-800 mb-4 text-center">Escolher personagem</h2>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {createdCharacters.map((char, idx) => (
-                    <div key={idx} onClick={() => setSelectedCharacter(char)} className={`p-4 rounded-sm cursor-pointer transition-all border-2 flex items-center gap-4 ${selectedCharacter?.nome === char.nome ? 'bg-blue-200 border-blue-600' : 'bg-muted hover:bg-muted/80 border-border'}`}>
+                    <div key={idx} onClick={() => setSelectedCharacter(char)} className={`p-4 rounded-sm cursor-pointer transition-all border-2 flex items-center gap-4 ${selectedCharacter === char ? 'bg-blue-200 border-blue-600' : 'bg-muted hover:bg-muted/80 border-border'}`}>
                       <img src={getCharacterSprite(char.arma)} alt={char.nome} className="w-12 h-12 object-contain" style={{ imageRendering: 'pixelated' }} />
                       <div>
                         <p className="text-foreground font-bold">{char.nome} ({char.arma})</p>
@@ -1064,11 +1100,16 @@ export default function SandboxMode({ onExit }: Props) {
                     </>
                   )}
 
-                  {/* Chronos Transform */}
+                  {/* Chronos Abilities */}
                   {selectedCharacter.specialType === 'chronos' && (
-                    <Button onClick={chronosTransform} disabled={!isPlayerTurn || attackCooldown || chronosState.transformUsed} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold">
-                      👶 TRANSFORM {chronosState.transformUsed && '(USADO)'}
-                    </Button>
+                    <>
+                      <Button onClick={chronosRewind} disabled={!isPlayerTurn || !chronosState.canRewind} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold">
+                        ⏪ VOLTAR TURNO {!chronosState.canRewind && '(N/A)'}
+                      </Button>
+                      <Button onClick={chronosTransform} disabled={!isPlayerTurn || attackCooldown || chronosState.transformUsed} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold">
+                        👶 TRANSFORM {chronosState.transformUsed && '(USADO)'}
+                      </Button>
+                    </>
                   )}
 
                   {/* Goku Kamehameha */}
@@ -1081,9 +1122,9 @@ export default function SandboxMode({ onExit }: Props) {
               )}
 
               {/* Battle Log */}
-              <div className="bg-muted border-2 border-border rounded-sm p-4 max-h-48 overflow-y-auto">
+              <div className="bg-muted border-2 border-border rounded-sm p-4 max-h-48 overflow-y-auto flex flex-col-reverse">
                 <h4 className="text-primary font-bold mb-2">Log de Batalha:</h4>
-                {battleLog.map((log, idx) => (
+                {battleLog.slice(-7).reverse().map((log, idx) => (
                   <p key={idx} className="text-foreground text-sm">{log}</p>
                 ))}
               </div>
