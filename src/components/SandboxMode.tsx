@@ -44,6 +44,48 @@ import {
   getLuffyGearCost,
   LUFFY_SPRITES
 } from "@/utils/specialCharacters";
+import {
+  playSukunaDesmantelar,
+  playSukunaClevar,
+  playSukunaFuga,
+  playSukunaSantuario,
+  playGojoAzul,
+  playGojoVermelho,
+  playGojoVazioRoxo,
+  playGojoInfinito,
+  playGojoVazioInfinito,
+  playYiCounter,
+  playYiInsert,
+  playYiExplode,
+  playMarioMushroom,
+  playChronosRewind,
+  playChronosTransform,
+  playGuest1337Block,
+  playGuest1337BlockFail,
+  playSonicDodge,
+  playLuffyGear,
+  playNormalAttack
+} from "@/utils/soundEffects";
+
+const ENEMY_SPECIAL_TYPE_MAP: Record<string, SpecialType> = {
+  'Esqueleto': 'normal',
+  'Goblin': 'normal',
+  'Sombra': 'normal',
+  'Bandido': 'normal',
+  'Uraume': 'normal',
+  'Mosca': 'normal',
+  'Guarda': 'normal',
+  'Alma': 'normal',
+  'Sukuna': 'sukuna',
+  'Luffy': 'luffy',
+  'Yi': 'yi',
+  'Gojo': 'gojo',
+  'Mario': 'mario',
+  'Goku': 'goku',
+  'Sonic': 'sonic',
+  'Chronos': 'chronos',
+  'Guest 1337': 'guest1337',
+};
 
 type SpecialType = 'normal' | 'sukuna' | 'luffy' | 'yi' | 'gojo' | 'mario' | 'guest1337' | 'chronos' | 'goku' | 'sonic';
 
@@ -70,7 +112,7 @@ interface EnemyStats {
   vida: number;
   tipoDano: 'forca' | 'poderDeFogo';
   imagem: string;
-  specialType?: SpecialType;
+  specialType: SpecialType;
 }
 
 interface Props {
@@ -173,7 +215,7 @@ export default function SandboxMode({ onExit }: Props) {
   const [attackCooldown, setAttackCooldown] = useState(false);
   const [turnCount, setTurnCount] = useState(0);
 
-  // Special character states
+  // Player Special character states
   const [sukunaState, setSukunaState] = useState<SukunaState>({
     desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0
   });
@@ -197,8 +239,33 @@ export default function SandboxMode({ onExit }: Props) {
     lastTurnState: null, canRewind: false, transformUsed: false
   });
   
+  // Enemy Special character states (for when enemy has special type)
+  const [enemySukunaState, setEnemySukunaState] = useState<SukunaState>({
+    desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0
+  });
+  const [enemyLuffyState, setEnemyLuffyState] = useState<LuffyState>({
+    currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false
+  });
+  const [enemyYiState, setEnemyYiState] = useState<YiState>({
+    lives: 9, currentStep: 'counter', hasTalisman: false
+  });
+  const [enemyGojoState, setEnemyGojoState] = useState<GojoState>({
+    azulCooldown: 0, vermelhoCooldown: 0, vazioRoxoCooldown: 0, 
+    infinitoCooldown: 0, infinitoTurnsActive: 0, vazioInfinitoUsed: false, enemyStunTurns: 0
+  });
+  const [enemyMarioState, setEnemyMarioState] = useState<MarioState>({
+    mushroomCooldown: 0, mushroomTurnsActive: 0
+  });
+  const [enemyGuest1337State, setEnemyGuest1337State] = useState<Guest1337State>({
+    nextAttackDouble: false
+  });
+  const [enemyChronosState, setEnemyChronosState] = useState<ChronosState>({
+    lastTurnState: null, canRewind: false, transformUsed: false
+  });
+  
   // Goku state
   const [isKamehamehaActive, setIsKamehamehaActive] = useState(false);
+  const [isEnemyKamehamehaActive, setIsEnemyKamehamehaActive] = useState(false);
   const kamehamehaAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Update weapon when arma changes
@@ -211,6 +278,17 @@ export default function SandboxMode({ onExit }: Props) {
       setCharacterForm(prev => ({ ...prev, vida: 5 }));
     }
   }, [characterForm.arma]);
+
+  // Update enemy specialType when imagem changes
+  useEffect(() => {
+    const specialType = ENEMY_SPECIAL_TYPE_MAP[enemyForm.imagem] || 'normal';
+    setEnemyForm(prev => ({ ...prev, specialType }));
+    
+    // Yi enemy has fixed 5 HP
+    if (specialType === 'yi') {
+      setEnemyForm(prev => ({ ...prev, vida: 5 }));
+    }
+  }, [enemyForm.imagem]);
 
   const handleCreateCharacter = () => {
     setCreatedCharacters([...createdCharacters, { ...characterForm }]);
@@ -260,6 +338,14 @@ export default function SandboxMode({ onExit }: Props) {
     setMarioState({ mushroomCooldown: 0, mushroomTurnsActive: 0 });
     setGuest1337State({ nextAttackDouble: false });
     setChronosState({ lastTurnState: null, canRewind: false, transformUsed: false });
+    // Reset enemy states
+    setEnemySukunaState({ desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0 });
+    setEnemyLuffyState({ currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false });
+    setEnemyYiState({ lives: 9, currentStep: 'counter', hasTalisman: false });
+    setEnemyGojoState({ azulCooldown: 0, vermelhoCooldown: 0, vazioRoxoCooldown: 0, infinitoCooldown: 0, infinitoTurnsActive: 0, vazioInfinitoUsed: false, enemyStunTurns: 0 });
+    setEnemyMarioState({ mushroomCooldown: 0, mushroomTurnsActive: 0 });
+    setEnemyGuest1337State({ nextAttackDouble: false });
+    setEnemyChronosState({ lastTurnState: null, canRewind: false, transformUsed: false });
     setTurnCount(0);
   };
 
@@ -520,14 +606,20 @@ export default function SandboxMode({ onExit }: Props) {
     }
     
     setAttackCooldown(true);
+    // Play sound effect
+    if (attackType === 'desmantelar') playSukunaDesmantelar();
+    else if (attackType === 'clevar') playSukunaClevar();
+    else if (attackType === 'fuga') playSukunaFuga();
+    else if (attackType === 'santuario') playSukunaSantuario();
+    
     const damage = calculateSukunaDamage(attackType);
     const names = { desmantelar: 'DESMANTELAR', clevar: 'CLEVAR', fuga: 'FUGA', santuario: 'SANTUÁRIO MALEVOLENTE' };
     
     setSukunaState(prev => ({ ...prev, [stateKeys[attackType]]: cooldowns[attackType] }));
     dealDamageToEnemy(damage, `🔪 ${names[attackType]}! ${damage} de dano!`);
     advanceTurn();
-    
-    setTimeout(() => handleEnemyTurn(), 1500);
+    setIsPlayerTurn(false);
+    setAttackCooldown(false);
   };
 
   // Gojo attacks
@@ -548,6 +640,12 @@ export default function SandboxMode({ onExit }: Props) {
     }
     
     setAttackCooldown(true);
+    // Play sound effect
+    if (attackType === 'azul') playGojoAzul();
+    else if (attackType === 'vermelho') playGojoVermelho();
+    else if (attackType === 'vazioRoxo') playGojoVazioRoxo();
+    else if (attackType === 'infinito') playGojoInfinito();
+    else if (attackType === 'vazioInfinito') playGojoVazioInfinito();
     
     if (attackType === 'infinito') {
       setGojoState(prev => ({ ...prev, infinitoCooldown: 5, infinitoTurnsActive: 3 }));
@@ -563,7 +661,8 @@ export default function SandboxMode({ onExit }: Props) {
     }
     
     advanceTurn();
-    setTimeout(() => handleEnemyTurn(), 1500);
+    setIsPlayerTurn(false);
+    setAttackCooldown(false);
   };
 
   // Yi attacks
@@ -571,13 +670,13 @@ export default function SandboxMode({ onExit }: Props) {
     if (!selectedCharacter || attackCooldown) return;
     
     setAttackCooldown(true);
+    playYiCounter();
     const success = Math.random() < 0.5;
     
     if (success) {
       setYiState(prev => ({ ...prev, currentStep: 'insert', hasTalisman: true }));
       setBattleLog(prev => [...prev, `🛡️ COUNTER SUCESSO! Você ganhou um talismã!`]);
       setAttackCooldown(false);
-      setIsPlayerTurn(true);
     } else {
       setBattleLog(prev => [...prev, `❌ Counter falhou! Turno perdido.`]);
       // Yi perde uma vida quando falha
@@ -591,7 +690,8 @@ export default function SandboxMode({ onExit }: Props) {
         return { ...prev, lives: newLives };
       });
       advanceTurn();
-      setTimeout(() => handleEnemyTurn(), 1500);
+      setIsPlayerTurn(false);
+      setAttackCooldown(false);
     }
   };
 
@@ -599,22 +699,26 @@ export default function SandboxMode({ onExit }: Props) {
     if (!selectedCharacter || attackCooldown || !yiState.hasTalisman) return;
     
     setAttackCooldown(true);
+    playYiInsert();
     setYiState(prev => ({ ...prev, currentStep: 'explode' }));
     setBattleLog(prev => [...prev, `📜 TALISMÃ INSERIDO no inimigo!`]);
     
     advanceTurn();
-    setTimeout(() => handleEnemyTurn(), 1500);
+    setIsPlayerTurn(false);
+    setAttackCooldown(false);
   };
 
   const yiExplode = () => {
     if (!selectedCharacter || attackCooldown || yiState.currentStep !== 'explode') return;
     
     setAttackCooldown(true);
+    playYiExplode();
     dealDamageToEnemy(500, `💥 EXPLODE! 500 de dano GARANTIDO!`);
     setYiState(prev => ({ ...prev, currentStep: 'counter', hasTalisman: false }));
     
     advanceTurn();
-    setTimeout(() => handleEnemyTurn(), 1500);
+    setIsPlayerTurn(false);
+    setAttackCooldown(false);
   };
 
   // Mario mushroom
@@ -623,6 +727,7 @@ export default function SandboxMode({ onExit }: Props) {
       setBattleLog(prev => [...prev, `⏰ Cogumelo em cooldown: ${marioState.mushroomCooldown} turnos`]);
       return;
     }
+    playMarioMushroom();
     setMarioState({ mushroomCooldown: 4, mushroomTurnsActive: 2 });
     setBattleLog(prev => [...prev, `🍄 COGUMELO! +15 de dano por 2 turnos!`]);
   };
@@ -635,19 +740,22 @@ export default function SandboxMode({ onExit }: Props) {
     const success = Math.random() < 0.5;
     
     if (success) {
+      playGuest1337Block();
       setGuest1337State({ nextAttackDouble: true });
       setBattleLog(prev => [...prev, `🛡️ BLOQUEIO PERFEITO! Próximo ataque causará DANO DOBRADO!`]);
       setAttackCooldown(false);
-      setIsPlayerTurn(true);
     } else {
+      playGuest1337BlockFail();
       setBattleLog(prev => [...prev, `❌ Bloqueio falhou! Turno perdido.`]);
       advanceTurn();
-      setTimeout(() => handleEnemyTurn(), 1500);
+      setIsPlayerTurn(false);
+      setAttackCooldown(false);
     }
   };
 
   // Luffy gears
   const activateGear = (gear: 2 | 3 | 4 | 5) => {
+    playLuffyGear(gear);
     setLuffyState(prev => ({ ...prev, currentGear: gear, gearTurnsActive: 0, gearMenuOpen: false }));
     setBattleLog(prev => [...prev, `🔥 GEAR ${gear} ATIVADO! ${getLuffyGearCost(gear)}`]);
   };
@@ -664,6 +772,7 @@ export default function SandboxMode({ onExit }: Props) {
       return;
     }
     
+    playChronosRewind();
     const { savedPlayerHp, savedEnemyHp } = chronosState.lastTurnState;
     setPlayerHp(savedPlayerHp);
     setEnemyHp(savedEnemyHp);
@@ -675,13 +784,15 @@ export default function SandboxMode({ onExit }: Props) {
     if (chronosState.transformUsed || !selectedEnemy || attackCooldown) return;
     
     setAttackCooldown(true);
+    playChronosTransform();
     setChronosState(prev => ({ ...prev, transformUsed: true }));
     setEnemyHp(1);
     setEnemyMaxHp(1);
     setBattleLog(prev => [...prev, `👶 TRANSFORM! ${selectedEnemy.nome} virou um Bebê Indefeso com 1 de vida!`]);
     
     advanceTurn();
-    setTimeout(() => handleEnemyTurn(), 1500);
+    setIsPlayerTurn(false);
+    setAttackCooldown(false);
   };
 
   // Goku Kamehameha
@@ -702,6 +813,240 @@ export default function SandboxMode({ onExit }: Props) {
         setBattleLog(prev => [...prev, `💥 ${selectedEnemy.nome} foi ANIQUILADO pelo Kamehameha!`]);
         setBattleLog(prev => [...prev, `🎉 ${selectedCharacter.nome} venceu a batalha! 🎉`]);
         setIsKamehamehaActive(false);
+        setAttackCooldown(false);
+      }, 13000);
+    };
+  };
+
+  // ============== ENEMY CONTROLLED ATTACKS ==============
+  
+  const dealDamageToPlayer = (damage: number, message: string) => {
+    // Check player special defenses first
+    if (selectedCharacter?.specialType === 'sonic') {
+      playSonicDodge();
+      setBattleLog(prev => [...prev, `💨 ${selectedCharacter.nome} desviou com velocidade extrema!`]);
+      return;
+    }
+    
+    if (selectedCharacter?.specialType === 'gojo' && gojoState.infinitoTurnsActive > 0) {
+      setBattleLog(prev => [...prev, `♾️ Infinito bloqueou o ataque!`]);
+      return;
+    }
+    
+    if (selectedCharacter?.specialType === 'luffy' && luffyState.currentGear === 5 && Math.random() < 0.8) {
+      setBattleLog(prev => [...prev, `💨 ${selectedCharacter.nome} desviou com Gear 5!`]);
+      return;
+    }
+    
+    // Yi life system
+    if (selectedCharacter?.specialType === 'yi') {
+      setYiState(prev => {
+        const newLives = prev.lives - 1;
+        setBattleLog(log => [...log, `💀 Yi perdeu uma vida! Vidas restantes: ${newLives}`]);
+        if (newLives <= 0) {
+          setPlayerHp(0);
+          setBattleLog(log => [...log, `💀 ${selectedCharacter.nome} foi derrotado! 💀`]);
+        }
+        return { ...prev, lives: newLives };
+      });
+    } else {
+      // Save state for chronos rewind
+      if (selectedCharacter?.specialType === 'chronos') {
+        setChronosState(prev => ({ 
+          ...prev, 
+          canRewind: true, 
+          lastTurnState: { savedPlayerHp: playerHp, savedEnemyHp: enemyHp }
+        }));
+      }
+      
+      setPlayerHp(prev => {
+        const newHp = Math.max(0, prev - damage);
+        setBattleLog(log => [...log, message]);
+        if (newHp <= 0) {
+          setBattleLog(log => [...log, `💀 ${selectedCharacter?.nome} foi derrotado! 💀`]);
+        }
+        return newHp;
+      });
+    }
+  };
+
+  // Enemy basic attack (controlled by user)
+  const enemyBasicAttack = () => {
+    if (!selectedEnemy || !selectedCharacter || isPlayerTurn || attackCooldown || playerHp <= 0) return;
+    
+    setAttackCooldown(true);
+    playNormalAttack();
+    
+    const attackStat = selectedEnemy.tipoDano === 'forca' 
+      ? selectedEnemy.forca 
+      : selectedEnemy.poderDeFogo;
+    
+    // Apply enemy Mario mushroom bonus
+    let marioDamageBonus = 0;
+    if (selectedEnemy.specialType === 'mario' && enemyMarioState.mushroomTurnsActive > 0) {
+      marioDamageBonus = 15;
+    }
+    
+    // Apply enemy Luffy gear bonus
+    let bonusForca = 0;
+    if (selectedEnemy.specialType === 'luffy' && enemyLuffyState.currentGear > 0) {
+      bonusForca = getLuffyGearBonus(enemyLuffyState.currentGear).forca;
+    }
+    
+    let damage = Math.max(1, attackStat + bonusForca + selectedEnemy.inteligencia + Math.floor(Math.random() * 6) + 1 + marioDamageBonus);
+    
+    // Enemy Guest 1337 double damage
+    if (selectedEnemy.specialType === 'guest1337' && enemyGuest1337State.nextAttackDouble) {
+      damage *= 2;
+      setEnemyGuest1337State({ nextAttackDouble: false });
+      setBattleLog(prev => [...prev, `💥 ${selectedEnemy.nome} DANO DOBRADO!`]);
+    }
+    
+    dealDamageToPlayer(damage, `💥 ${selectedEnemy.nome} atacou causando ${damage} de dano!`);
+    
+    advanceTurn();
+    setIsPlayerTurn(true);
+    setAttackCooldown(false);
+  };
+
+  // Enemy Sukuna attacks
+  const enemySukunaAttack = (attackType: 'desmantelar' | 'clevar' | 'fuga' | 'santuario') => {
+    if (!selectedEnemy || selectedEnemy.specialType !== 'sukuna' || isPlayerTurn || attackCooldown || playerHp <= 0) return;
+    
+    const cooldowns = { desmantelar: 2, clevar: 4, fuga: 5, santuario: 10 };
+    const stateKeys = { desmantelar: 'desmantelarCooldown', clevar: 'clevarCooldown', fuga: 'fugaCooldown', santuario: 'santuarioCooldown' } as const;
+    
+    if (enemySukunaState[stateKeys[attackType]] > 0) {
+      setBattleLog(prev => [...prev, `⏰ ${selectedEnemy.nome} em cooldown: ${enemySukunaState[stateKeys[attackType]]} turnos`]);
+      return;
+    }
+    
+    setAttackCooldown(true);
+    if (attackType === 'desmantelar') playSukunaDesmantelar();
+    else if (attackType === 'clevar') playSukunaClevar();
+    else if (attackType === 'fuga') playSukunaFuga();
+    else if (attackType === 'santuario') playSukunaSantuario();
+    
+    const damage = calculateSukunaDamage(attackType);
+    const names = { desmantelar: 'DESMANTELAR', clevar: 'CLEVAR', fuga: 'FUGA', santuario: 'SANTUÁRIO MALEVOLENTE' };
+    
+    setEnemySukunaState(prev => ({ ...prev, [stateKeys[attackType]]: cooldowns[attackType] }));
+    dealDamageToPlayer(damage, `🔪 ${selectedEnemy.nome} usou ${names[attackType]}! ${damage} de dano!`);
+    
+    advanceTurn();
+    setIsPlayerTurn(true);
+    setAttackCooldown(false);
+  };
+
+  // Enemy Gojo attacks
+  const enemyGojoAttack = (attackType: 'azul' | 'vermelho' | 'vazioRoxo' | 'infinito' | 'vazioInfinito') => {
+    if (!selectedEnemy || selectedEnemy.specialType !== 'gojo' || isPlayerTurn || attackCooldown || playerHp <= 0) return;
+    
+    if (attackType === 'vazioInfinito' && enemyGojoState.vazioInfinitoUsed) {
+      setBattleLog(prev => [...prev, `❌ ${selectedEnemy.nome} já usou Vazio Infinito!`]);
+      return;
+    }
+    
+    const cooldowns = { azul: 5, vermelho: 5, vazioRoxo: 10, infinito: 5 };
+    const stateKeys = { azul: 'azulCooldown', vermelho: 'vermelhoCooldown', vazioRoxo: 'vazioRoxoCooldown', infinito: 'infinitoCooldown' } as const;
+    
+    if (attackType !== 'vazioInfinito' && enemyGojoState[stateKeys[attackType]] > 0) {
+      setBattleLog(prev => [...prev, `⏰ ${selectedEnemy.nome} em cooldown: ${enemyGojoState[stateKeys[attackType]]} turnos`]);
+      return;
+    }
+    
+    setAttackCooldown(true);
+    if (attackType === 'azul') playGojoAzul();
+    else if (attackType === 'vermelho') playGojoVermelho();
+    else if (attackType === 'vazioRoxo') playGojoVazioRoxo();
+    else if (attackType === 'infinito') playGojoInfinito();
+    else if (attackType === 'vazioInfinito') playGojoVazioInfinito();
+    
+    if (attackType === 'infinito') {
+      setEnemyGojoState(prev => ({ ...prev, infinitoCooldown: 5, infinitoTurnsActive: 3 }));
+      setBattleLog(prev => [...prev, `♾️ ${selectedEnemy.nome} ativou INFINITO! Invulnerável por 3 turnos!`]);
+    } else if (attackType === 'vazioInfinito') {
+      setEnemyGojoState(prev => ({ ...prev, vazioInfinitoUsed: true, enemyStunTurns: 2 }));
+      setLuffyState(prev => ({ ...prev, stunTurns: 2 })); // Stuns the player
+      setBattleLog(prev => [...prev, `🌀 ${selectedEnemy.nome} usou VAZIO INFINITO! Você está paralisado por 2 turnos!`]);
+    } else {
+      const damage = calculateGojoDamage(attackType);
+      const names = { azul: 'AZUL', vermelho: 'VERMELHO', vazioRoxo: 'VAZIO ROXO' };
+      setEnemyGojoState(prev => ({ ...prev, [stateKeys[attackType]]: cooldowns[attackType] }));
+      dealDamageToPlayer(damage, `🔵 ${selectedEnemy.nome} usou ${names[attackType]}! ${damage} de dano!`);
+    }
+    
+    advanceTurn();
+    setIsPlayerTurn(true);
+    setAttackCooldown(false);
+  };
+
+  // Enemy Mario mushroom
+  const enemyMarioMushroom = () => {
+    if (!selectedEnemy || selectedEnemy.specialType !== 'mario' || isPlayerTurn) return;
+    
+    if (enemyMarioState.mushroomCooldown > 0) {
+      setBattleLog(prev => [...prev, `⏰ ${selectedEnemy.nome} cogumelo em cooldown: ${enemyMarioState.mushroomCooldown} turnos`]);
+      return;
+    }
+    playMarioMushroom();
+    setEnemyMarioState({ mushroomCooldown: 4, mushroomTurnsActive: 2 });
+    setBattleLog(prev => [...prev, `🍄 ${selectedEnemy.nome} comeu um COGUMELO! +15 de dano por 2 turnos!`]);
+  };
+
+  // Enemy Guest 1337 block
+  const enemyGuest1337Block = () => {
+    if (!selectedEnemy || selectedEnemy.specialType !== 'guest1337' || isPlayerTurn || attackCooldown) return;
+    
+    setAttackCooldown(true);
+    const success = Math.random() < 0.5;
+    
+    if (success) {
+      playGuest1337Block();
+      setEnemyGuest1337State({ nextAttackDouble: true });
+      setBattleLog(prev => [...prev, `🛡️ ${selectedEnemy.nome} BLOQUEIO PERFEITO! Próximo ataque dobrado!`]);
+      setAttackCooldown(false);
+    } else {
+      playGuest1337BlockFail();
+      setBattleLog(prev => [...prev, `❌ ${selectedEnemy.nome} falhou no bloqueio! Turno perdido.`]);
+      advanceTurn();
+      setIsPlayerTurn(true);
+      setAttackCooldown(false);
+    }
+  };
+
+  // Enemy Luffy gears
+  const enemyActivateGear = (gear: 2 | 3 | 4 | 5) => {
+    if (!selectedEnemy || selectedEnemy.specialType !== 'luffy' || isPlayerTurn) return;
+    playLuffyGear(gear);
+    setEnemyLuffyState(prev => ({ ...prev, currentGear: gear, gearTurnsActive: 0, gearMenuOpen: false }));
+    setBattleLog(prev => [...prev, `🔥 ${selectedEnemy.nome} ativou GEAR ${gear}!`]);
+  };
+
+  const enemyDeactivateGear = () => {
+    if (!selectedEnemy || selectedEnemy.specialType !== 'luffy' || isPlayerTurn) return;
+    setEnemyLuffyState(prev => ({ ...prev, currentGear: 0, gearTurnsActive: 0, gearMenuOpen: false }));
+    setBattleLog(prev => [...prev, `${selectedEnemy.nome} desativou o Gear.`]);
+  };
+
+  // Enemy Goku Kamehameha
+  const enemyGokuKamehameha = () => {
+    if (!selectedEnemy || selectedEnemy.specialType !== 'goku' || !selectedCharacter || isPlayerTurn || attackCooldown || isEnemyKamehamehaActive) return;
+    
+    setAttackCooldown(true);
+    setIsEnemyKamehamehaActive(true);
+    
+    const audio = new Audio(gokuKamehamehaSound);
+    audio.play();
+    
+    setBattleLog(prev => [...prev, `🔵 ${selectedEnemy.nome}: KAAAA-MEEEEE-HAAAA-MEEEEE-HAAAAA!`]);
+    
+    audio.onended = () => {
+      setTimeout(() => {
+        setPlayerHp(0);
+        setBattleLog(prev => [...prev, `💥 ${selectedCharacter.nome} foi ANIQUILADO pelo Kamehameha!`]);
+        setBattleLog(prev => [...prev, `💀 ${selectedEnemy.nome} venceu a batalha! 💀`]);
+        setIsEnemyKamehamehaActive(false);
         setAttackCooldown(false);
       }, 13000);
     };
