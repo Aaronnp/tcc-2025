@@ -12,6 +12,7 @@ import heroChronos from "@/assets/hero-chronos.png";
 import heroGoku from "@/assets/hero-goku.png";
 import heroSonic from "@/assets/hero-sonic.png";
 import heroSword from "@/assets/hero-sword.png";
+import heroGuest1337 from "@/assets/hero-guest1337.png";
 
 export interface SpecialCharacter {
   id: string;
@@ -37,7 +38,7 @@ export const SPECIAL_CHARACTERS: SpecialCharacter[] = [
     id: 'guest1337',
     nome: 'Guest 1337',
     descricao: 'Bloqueio poderoso! 50% chance de bloquear e dobrar dano do próximo ataque',
-    sprite: heroSword,
+    sprite: heroGuest1337,
     requiredVictories: 1,
     specialType: 'guest1337'
   },
@@ -177,7 +178,7 @@ export const getCharacterSprite = (specialType: string, luffyGear?: number): str
     case 'yi': return heroYi;
     case 'gojo': return heroGojo;
     case 'mario': return heroMario;
-    case 'guest1337': return heroSword;
+    case 'guest1337': return heroGuest1337;
     case 'chronos': return heroChronos;
     case 'goku': return heroGoku;
     case 'sonic': return heroSonic;
@@ -202,7 +203,7 @@ export const getLuffyGearBonus = (gear: number): { forca: number; destreza: numb
     case 2: return { forca: 10, destreza: 25 };
     case 3: return { forca: 35, destreza: 0 };
     case 4: return { forca: 50, destreza: 25 };
-    case 5: return { forca: 100, destreza: 9999999999 };
+    case 5: return { forca: 100, destreza: 50 }; // Gear 5: destreza alta, mas não infinita
     default: return { forca: 0, destreza: 0 };
   }
 };
