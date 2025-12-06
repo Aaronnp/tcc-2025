@@ -30,6 +30,18 @@ export const resetGameProgress = () => {
   localStorage.removeItem('rpg_progress');
 };
 
+// Cheat code para dar 999 vitórias
+export const setWins999 = () => {
+  const progress = getGameProgress();
+  progress.totalVictories = 999;
+  progress.hardcoreVictories = 999;
+  progress.hasDevilWeapon = true;
+  progress.sandboxUnlocked = true;
+  // Desbloquear todos os personagens
+  progress.unlockedCharacters = [1, 2, 3, 4, 5, 6, 7];
+  saveGameProgress(progress);
+};
+
 export const addVictory = (isHardcore: boolean, isAftermatch: boolean) => {
   const progress = getGameProgress();
   progress.totalVictories++;

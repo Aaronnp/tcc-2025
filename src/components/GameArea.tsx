@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { addVictory } from "@/utils/gameProgress";
+import { addVictory, setWins999 } from "@/utils/gameProgress";
 import { 
   getCharacterSprite, 
   LUFFY_SPRITES,
@@ -15,7 +15,8 @@ import {
   GojoState,
   MarioState,
   Guest1337State,
-  ChronosState
+  ChronosState,
+  GamblerState
 } from "@/utils/specialCharacters";
 import {
   playSukunaDesmantelar,
@@ -57,6 +58,9 @@ import enemyBandit from "@/assets/enemy-bandit.png";
 import enemyFly from "@/assets/enemy-fly.png";
 import enemyGuard from "@/assets/enemy-guard.png";
 import enemySoul from "@/assets/enemy-soul.png";
+import enemyAtenas from "@/assets/enemy-atenas.png";
+import enemyAdalnir from "@/assets/enemy-adalnir.png";
+import enemySupremeAdalnir from "@/assets/enemy-supreme-adalnir.png";
 import slashEffect from "@/assets/slash-effect.png";
 import bossBackground from "@/assets/boss-background.png";
 import bossArkanusBackground from "@/assets/boss-arkanus-bg.png";
@@ -91,7 +95,7 @@ interface Enemy {
   int: number;
   vida: number;
   magia: number;
-  isBaby?: boolean; // Para Chronos TRANSFORM
+  isBaby?: boolean;
 }
 
 interface Props {
@@ -118,26 +122,27 @@ interface Item {
   especial?: string;
 }
 
+// Inimigos com chances iguais
 const enemies: Enemy[] = [
-  { nome: 'Adalnir', foto: enemySkeleton, forca: 6, des: 3, cons: 4, pdf: 2, int: 0, vida: 20, magia: 1 },
+  { nome: 'Adalnir', foto: enemyAdalnir, forca: 6, des: 3, cons: 4, pdf: 2, int: 0, vida: 20, magia: 1 },
   { nome: 'Alma Perdida', foto: enemySoul, forca: 2, des: 1, cons: 1, pdf: 0, int: 0, vida: 5, magia: 10 },
-  { nome: 'Esqueleto Armado (e com vida)', foto: enemySkeleton, forca: 0, des: 2, cons: 2, pdf: 5, int: 0, vida: 10, magia: 10 },
-  { nome: 'Esqueleto 💀', foto: enemySkeleton, forca: 0, des: 0, cons: 0, pdf: 0, int: 0, vida: 1, magia: 1 },
+  { nome: 'Esqueleto Armado', foto: enemySkeleton, forca: 0, des: 2, cons: 2, pdf: 5, int: 0, vida: 10, magia: 10 },
+  { nome: 'Esqueleto', foto: enemySkeleton, forca: 0, des: 0, cons: 0, pdf: 0, int: 0, vida: 1, magia: 1 },
   { nome: 'Bandido Perdido', foto: enemyBandit, forca: 5, des: 2, cons: 4, pdf: 0, int: 0, vida: 20, magia: 20 },
   { nome: 'Mosca Titânica', foto: enemyFly, forca: 8, des: 5, cons: 7, pdf: 0, int: 0, vida: 35, magia: 100 },
   { nome: 'Guarda Sombrio', foto: enemyGuard, forca: 5, des: 1, cons: 6, pdf: 5, int: 0, vida: 30, magia: 50 },
   { nome: 'Goblin', foto: enemyGoblin, forca: 2, des: 2, cons: 2, pdf: 2, int: 0, vida: 10, magia: 100 },
-  { nome: 'Supreme Adalnir', foto: enemySkeleton, forca: 12, des: 6, cons: 8, pdf: 4, int: 0, vida: 50, magia: 100 },
+  { nome: 'Supreme Adalnir', foto: enemySupremeAdalnir, forca: 12, des: 6, cons: 8, pdf: 4, int: 0, vida: 50, magia: 100 },
   { nome: 'Uraume', foto: enemyUraume, forca: 6, des: 2, cons: 2, pdf: 0, int: 0, vida: 10, magia: 25 },
   { nome: 'Sombra', foto: enemyShadow, forca: 1, des: 6, cons: 1, pdf: 0, int: 0, vida: 5, magia: 45 },
-  { nome: 'Atenas', foto: enemySkeleton, forca: 1, des: 2, cons: 5, pdf: 6, int: 0, vida: 25, magia: 50 },
+  { nome: 'Atenas', foto: enemyAtenas, forca: 1, des: 2, cons: 5, pdf: 6, int: 0, vida: 25, magia: 50 },
 ];
 
 const bosses: Enemy[] = [
   { nome: 'Arkanus, O Guerreiro Perdido', foto: bossArkanus, forca: 8, des: 2, cons: 20, pdf: 3, int: 5, vida: 75, magia: 300 },
   { nome: 'A Sombra Primordial', foto: bossShadow, forca: 6, des: 9999, cons: 0, pdf: 0, int: 10, vida: 50, magia: 500 },
   { nome: 'Infernus Veylor, O Assasino de Vultos', foto: bossInfernus, forca: 10, des: 10, cons: 43, pdf: 15, int: 15, vida: 215, magia: 350 },
-  { nome: 'Aeternus, o Deus das Sombras', foto: bossAeternus, forca: 30, des: 30, cons: 100, pdf: 20, int: 30, vida: 750, magia: 2000 },
+  { nome: 'Aeternus, o Deus das Sombras', foto: bossAeternus, forca: 15, des: 30, cons: 100, pdf: 20, int: 30, vida: 500, magia: 2000 },
 ];
 
 const getBossBackground = (bossName: string) => {
@@ -151,6 +156,13 @@ const getBossBackground = (bossName: string) => {
 export default function GameArea({ character: initialCharacter, onCharacterUpdate, onReturnToSheet, initialRoom = 0, isAftermatch = false }: Props) {
   const [character, setCharacter] = useState(initialCharacter);
   const [currentRoom, setCurrentRoom] = useState(initialRoom);
+  
+  // Check for cheat code
+  useEffect(() => {
+    if (character.nome.toLowerCase() === 'setwins999') {
+      setWins999();
+    }
+  }, [character.nome]);
   
   useEffect(() => {
     setCurrentRoom(initialRoom);
@@ -187,11 +199,13 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const [guest1337State, setGuest1337State] = useState<Guest1337State>({ nextAttackDouble: false });
   const [chronosState, setChronosState] = useState<ChronosState>({ lastTurnState: null, canRewind: false, transformUsed: false });
   const [chronosTargetRoom, setChronosTargetRoom] = useState<string>('');
+  const [gamblerState, setGamblerState] = useState<GamblerState>({ damageMultiplier: 1, coinFlipActive: false });
+  const [coinChoice, setCoinChoice] = useState<'cara' | 'coroa' | null>(null);
   
   const specialType = character.specialType || 'normal';
   const isGokuMode = specialType === 'goku' || character.arma === 'Goku';
   const isSonicMode = specialType === 'sonic' || character.nome.toLowerCase().includes('sonic');
-  const isDevilWeapon = character.arma === 'Diabo';
+  const isDevilWeaponEquipped = equippedWeapon?.especial === 'devil_weapon';
   const isInfernoMode = character.hardcore || false;
   
   const modifiedEnemies = isAftermatch 
@@ -380,14 +394,14 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       
       if (nextRoom + 1 === 70) {
         const shadowWeapon: Item = { nome: 'Arma das Sombras', tipo: 'arma', bonus: { dano: 15 } };
-        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou ${room.chest.nome}, Arma das Sombras e uma Poção!`]);
+        setBattleLog([`✅ Sala ${nextRoom + 1}: 📦 Baú! Você encontrou ${room.chest.nome}, Arma das Sombras e uma Poção!`]);
         setInventory(prev => [...prev, room.chest!, shadowWeapon, potion]);
       } else if (nextRoom + 1 === 98) {
         const lightWeapon: Item = { nome: 'Arma de Luz', tipo: 'arma', bonus: { dano: 30 } };
-        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou ${room.chest.nome}, Arma de Luz e uma Poção!`]);
+        setBattleLog([`✅ Sala ${nextRoom + 1}: 📦 Baú! Você encontrou ${room.chest.nome}, Arma de Luz e uma Poção!`]);
         setInventory(prev => [...prev, room.chest!, lightWeapon, potion]);
       } else {
-        setBattleLog([`✅ Sala ${nextRoom + 1}: Você encontrou ${room.chest.nome} e uma Poção!`]);
+        setBattleLog([`✅ Sala ${nextRoom + 1}: 📦 Baú! Você encontrou ${room.chest.nome} e uma Poção!`]);
         setInventory(prev => [...prev, room.chest!, potion]);
       }
       
@@ -413,7 +427,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const getTotalStats = () => {
     const weaponBonus = equippedWeapon?.bonus || {};
     const armorBonus = equippedArmor?.bonus || {};
-    const devilBonus = isDevilWeapon ? 30 : 0;
+    const devilBonus = isDevilWeaponEquipped ? 30 : 0;
     
     // Luffy gear bonus
     let gearBonus = { forca: 0, destreza: 0 };
@@ -511,6 +525,22 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     }
   };
 
+  // Gambler coin flip
+  const handleCoinFlip = (choice: 'cara' | 'coroa') => {
+    const result = Math.random() < 0.5 ? 'cara' : 'coroa';
+    const isWin = result === choice;
+    
+    if (isWin) {
+      const newMultiplier = gamblerState.damageMultiplier * 2;
+      setGamblerState({ damageMultiplier: newMultiplier, coinFlipActive: false });
+      setBattleLog(prev => [...prev, `🎰 ${result.toUpperCase()}! ACERTOU! Dano agora: x${newMultiplier}`]);
+    } else {
+      const newMultiplier = Math.floor(gamblerState.damageMultiplier / 2) || 1;
+      setGamblerState({ damageMultiplier: newMultiplier, coinFlipActive: false });
+      setBattleLog(prev => [...prev, `🎰 ${result.toUpperCase()}! ERROU! Dano agora: x${newMultiplier}`]);
+    }
+  };
+
   const attack = () => {
     if (!currentEnemy || !inBattle || attackCooldown) return;
     
@@ -594,7 +624,12 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       setBattleLog(prev => [...prev, `⚡ DANO DOBRADO!`]);
     }
     
-    let playerDamage = Math.max(1, (attackStat + stats.poderDeFogo + character.inteligencia + weaponDamageBonus + Math.floor(Math.random() * 6)) * damageMultiplier);
+    // Gambler multiplier
+    if (specialType === 'gambler') {
+      damageMultiplier = gamblerState.damageMultiplier;
+    }
+    
+    let playerDamage = Math.max(1, Math.floor((attackStat + stats.poderDeFogo + character.inteligencia + weaponDamageBonus + Math.floor(Math.random() * 6)) * damageMultiplier));
     
     // Enemy dodge
     let enemyDodged = false;
@@ -602,13 +637,19 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       enemyDodged = Math.random() < 0.3;
     }
     
-    // Player dodge (Sonic always dodges, Gojo with Infinito always dodges)
+    // Player dodge (Sonic always dodges, Gojo with Infinito always dodges, Luffy Gear 5 has 80% chance)
     let playerDodged = false;
     if (isSonicMode) {
       playerDodged = true;
     } else if (specialType === 'gojo' && gojoState.infinitoTurnsActive > 0) {
       playerDodged = true;
       setBattleLog(prev => [...prev, `♾️ Infinito bloqueou o ataque!`]);
+    } else if (specialType === 'luffy' && luffyState.currentGear === 5) {
+      // Gear 5: 80% dodge, not 100%
+      playerDodged = Math.random() < 0.8;
+      if (playerDodged) {
+        setBattleLog(prev => [...prev, `💨 Gear 5 desviou do ataque!`]);
+      }
     } else if (stats.destreza > currentEnemy.des) {
       playerDodged = Math.random() < 0.5;
     }
@@ -721,15 +762,19 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       setYiState(prev => ({ ...prev, currentStep: 'insert', hasTalisman: true }));
     } else {
       setBattleLog(prev => [...prev, `❌ Counter falhou! Turno perdido.`]);
-      // Yi perdeu uma vida quando falha no counter
-      setYiState(prev => {
-        const newLives = prev.lives - 1;
-        setBattleLog(log => [...log, `💀 Yi perdeu uma vida! Vidas restantes: ${newLives}`]);
-        if (newLives <= 0) {
-          handlePlayerDeath();
-        }
-        return { ...prev, lives: newLives };
-      });
+      // Yi perde uma vida e pula o turno - inimigo ataca
+      const newLives = yiState.lives - 1;
+      setYiState(prev => ({ ...prev, lives: newLives }));
+      setBattleLog(prev => [...prev, `💀 Yi perdeu uma vida! Vidas restantes: ${newLives}`]);
+      
+      if (newLives <= 0) {
+        handlePlayerDeath();
+      } else {
+        // Inimigo ataca
+        const stats = getTotalStats();
+        const enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
+        setBattleLog(prev => [...prev, `💥 Inimigo atacou e causou ${enemyDamage} de dano! (Yi ignora dano)`]);
+      }
     }
     advanceTurn();
   };
@@ -835,7 +880,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     } else {
       playGuest1337BlockFail();
       setBattleLog(prev => [...prev, `❌ Bloqueio falhou! Turno perdido.`]);
-      // Pula turno - inimigo ataca
+      // Guest1337 perde o turno - inimigo ataca
       const stats = getTotalStats();
       const enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6) - Math.floor(stats.armadura / 5));
       const newPlayerHp = character.vida - enemyDamage;
@@ -999,6 +1044,29 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     );
   }
 
+  // Gambler Coin Flip Modal
+  if (gamblerState.coinFlipActive) {
+    return (
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className="bg-amber-900 border-8 border-yellow-500 p-12 rounded-lg text-center">
+          <h1 className="text-5xl font-bold text-yellow-400 mb-8">🎰 CARA OU COROA? 🎰</h1>
+          <p className="text-white text-xl mb-6">Multiplicador atual: x{gamblerState.damageMultiplier}</p>
+          <div className="flex gap-8 justify-center">
+            <Button onClick={() => handleCoinFlip('cara')} className="bg-yellow-600 hover:bg-yellow-500 text-black text-3xl px-12 py-8 font-bold">
+              👑 CARA
+            </Button>
+            <Button onClick={() => handleCoinFlip('coroa')} className="bg-gray-600 hover:bg-gray-500 text-white text-3xl px-12 py-8 font-bold">
+              🌑 COROA
+            </Button>
+          </div>
+          <Button onClick={() => setGamblerState(prev => ({ ...prev, coinFlipActive: false }))} className="mt-8 bg-red-600 hover:bg-red-500 text-white">
+            Cancelar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // Luffy Gear Menu
   const renderLuffyGearMenu = () => {
     if (specialType !== 'luffy' || !luffyState.gearMenuOpen) return null;
@@ -1010,6 +1078,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
           <button
             key={gear}
             onClick={() => {
+              playLuffyGear(gear);
               setLuffyState(prev => ({ ...prev, currentGear: gear as 0|2|3|4|5, gearTurnsActive: 0, gearMenuOpen: false }));
               setBattleLog(prev => [...prev, `⚡ GEAR ${gear} ATIVADO!`]);
             }}
@@ -1104,6 +1173,14 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       );
     }
     
+    if (specialType === 'gambler') {
+      return (
+        <Button onClick={() => setGamblerState(prev => ({ ...prev, coinFlipActive: true }))} className="bg-yellow-600 hover:bg-yellow-500">
+          🎰 MOEDA (x{gamblerState.damageMultiplier})
+        </Button>
+      );
+    }
+    
     return null;
   };
 
@@ -1128,10 +1205,16 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
             {character.pointsToSpend > 0 && <div className="text-accent font-bold">Pontos: {character.pointsToSpend}</div>}
           </div>
           {specialType === 'luffy' && luffyState.currentGear > 0 && (
-            <div className="mt-2 text-red-400 font-bold">⚡ Gear {luffyState.currentGear} Ativo!</div>
+            <div className="mt-2 text-red-400 font-bold">⚡ Gear {luffyState.currentGear} Ativo! ({luffyState.gearTurnsActive}/3 turnos)</div>
+          )}
+          {specialType === 'luffy' && luffyState.stunTurns > 0 && (
+            <div className="mt-2 text-orange-400 font-bold">😵 Exausto: {luffyState.stunTurns} turnos</div>
           )}
           {specialType === 'gojo' && gojoState.infinitoTurnsActive > 0 && (
             <div className="mt-2 text-cyan-400 font-bold">♾️ Infinito: {gojoState.infinitoTurnsActive} turnos</div>
+          )}
+          {specialType === 'gambler' && (
+            <div className="mt-2 text-yellow-400 font-bold">🎰 Multiplicador: x{gamblerState.damageMultiplier}</div>
           )}
           {character.pointsToSpend > 0 && (
             <Button onClick={() => onReturnToSheet(0)} className={`mt-4 w-full ${isInfernoMode ? 'bg-red-900 hover:bg-red-800' : 'bg-accent hover:bg-accent/90'}`}>
@@ -1233,8 +1316,10 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                         <div className="mt-2 text-center text-white font-bold">
                           <div className="text-xl">{character.nome}</div>
                           <div className="text-lg">{specialType === 'yi' ? `Vidas: ${yiState.lives}` : `HP: ${character.vida}`}</div>
-                          {specialType === 'luffy' && luffyState.currentGear > 0 && <div className="text-orange-400">⚡ GEAR {luffyState.currentGear}</div>}
+                          {specialType === 'luffy' && luffyState.currentGear > 0 && <div className="text-orange-400">⚡ GEAR {luffyState.currentGear} ({luffyState.gearTurnsActive}/3)</div>}
+                          {specialType === 'luffy' && luffyState.stunTurns > 0 && <div className="text-red-400">😵 Exausto: {luffyState.stunTurns}t</div>}
                           {specialType === 'gojo' && gojoState.infinitoTurnsActive > 0 && <div className="text-cyan-400">♾️ Infinito: {gojoState.infinitoTurnsActive}t</div>}
+                          {specialType === 'gambler' && <div className="text-yellow-400">🎰 x{gamblerState.damageMultiplier}</div>}
                         </div>
                       </div>
                       
@@ -1272,11 +1357,19 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                       </div>
                     </div>
                     
-                    {/* Boss Battle Controls */}
+                    {/* Boss Battle Controls - SEM FUGIR */}
                     <div className="mt-4 flex flex-wrap justify-center gap-2 bg-black/70 p-4 rounded-lg">
                       <Button onClick={attack} disabled={attackCooldown || (specialType === 'luffy' && luffyState.stunTurns > 0)} className="bg-destructive hover:bg-destructive/90 text-white font-bold">
                         {isGokuMode ? '⚡ Kamehameha' : 'Atacar'} {attackCooldown && ' (3s)'}
                       </Button>
+                      
+                      {/* Gambler Coin Button entre Atacar e outras habilidades */}
+                      {specialType === 'gambler' && (
+                        <Button onClick={() => setGamblerState(prev => ({ ...prev, coinFlipActive: true }))} className="bg-yellow-600 hover:bg-yellow-500 text-black font-bold">
+                          🎰 MOEDA (x{gamblerState.damageMultiplier})
+                        </Button>
+                      )}
+                      
                       {renderSpecialAttacks()}
                       {specialType === 'luffy' && (
                         <Button onClick={() => luffyState.currentGear > 0 ? setLuffyState(prev => ({ ...prev, currentGear: 0, gearTurnsActive: 0 })) : setLuffyState(prev => ({ ...prev, gearMenuOpen: !prev.gearMenuOpen }))} className="bg-red-600 hover:bg-red-500">
@@ -1344,6 +1437,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                       <div className="mt-2 text-center font-bold">
                         <div>{character.nome}</div>
                         <div>{specialType === 'yi' ? `Vidas: ${yiState.lives}` : `HP: ${character.vida}`}</div>
+                        {specialType === 'gambler' && <div className="text-yellow-600">🎰 x{gamblerState.damageMultiplier}</div>}
                       </div>
                     </div>
                     
@@ -1393,6 +1487,13 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                       {isGokuMode ? '⚡ Kamehameha' : 'Atacar'}
                       {attackCooldown && ' (3s)'}
                     </Button>
+                    
+                    {/* Gambler Coin Button */}
+                    {specialType === 'gambler' && (
+                      <Button onClick={() => setGamblerState(prev => ({ ...prev, coinFlipActive: true }))} className="bg-yellow-600 hover:bg-yellow-500 text-black font-bold">
+                        🎰 MOEDA
+                      </Button>
+                    )}
                     
                     {renderSpecialAttacks()}
                     
@@ -1447,27 +1548,29 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                       </Button>
                     </div>
                     <Button onClick={advanceRoom} className={`w-full font-bold text-lg px-8 py-4 ${currentRoom === maxRooms - 1 ? 'bg-yellow-600 hover:bg-yellow-500' : isInfernoMode ? 'bg-red-900 hover:bg-red-800' : 'bg-accent hover:bg-accent/90'}`}>
-                      {currentRoom === maxRooms - 1 ? '🚪 ESCAPAR' : '🚪 Avançar'}
+                      {currentRoom === maxRooms - 1 ? '🏆 ESCAPAR' : '🚪 Avançar'}
                     </Button>
                   </div>
                 ) : (
-                  <Button onClick={advanceRoom} className={`font-bold text-lg px-8 py-4 w-full ${currentRoom === maxRooms - 1 ? 'bg-yellow-600 hover:bg-yellow-500' : isInfernoMode ? 'bg-red-900 hover:bg-red-800' : 'bg-accent hover:bg-accent/90'}`}>
-                    {currentRoom === maxRooms - 1 ? '🚪 ESCAPAR' : '🚪 Avançar Sala'}
+                  <Button onClick={advanceRoom} className={`w-full font-bold text-lg px-8 py-4 ${currentRoom === maxRooms - 1 ? 'bg-yellow-600 hover:bg-yellow-500' : isInfernoMode ? 'bg-red-900 hover:bg-red-800' : 'bg-accent hover:bg-accent/90'}`}>
+                    {currentRoom === maxRooms - 1 ? '🏆 ESCAPAR' : '🚪 Avançar'}
                   </Button>
                 )}
               </div>
             )}
+            
+            {/* Battle Log */}
+            {!isBossBattle && (
+              <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 ml-4 inline-block max-w-md ${isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'}`}>
+                <h3 className="text-lg font-bold mb-2">📜 Log de Batalha</h3>
+                <div className="max-h-48 overflow-y-auto space-y-1 flex flex-col-reverse">
+                  {battleLog.slice(-7).reverse().map((log, index) => (
+                    <div key={index} className="text-sm">{log}</div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
-        )}
-
-        {/* Battle Log */}
-        {battleLog.length > 0 && (
-          <div className={`parchment-bg p-6 rounded-sm border-4 mb-8 inline-block max-w-2xl ml-4 align-top ${isInfernoMode ? 'border-red-900 bg-red-950/80' : 'border-primary'}`}>
-            <h3 className="text-lg font-bold mb-4">📜 Log</h3>
-            <div className="text-sm space-y-1 max-h-48 overflow-y-auto flex flex-col-reverse">
-              {battleLog.slice(-7).reverse().map((log, index) => <div key={index}>{log}</div>)}
-            </div>
-          </div>
         )}
       </div>
     </div>

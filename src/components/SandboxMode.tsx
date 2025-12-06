@@ -67,6 +67,9 @@ import {
   playNormalAttack
 } from "@/utils/soundEffects";
 
+import heroGambler from "@/assets/hero-gambler.png";
+import { GamblerState } from "@/utils/specialCharacters";
+
 const ENEMY_SPECIAL_TYPE_MAP: Record<string, SpecialType> = {
   'Esqueleto': 'normal',
   'Goblin': 'normal',
@@ -85,9 +88,10 @@ const ENEMY_SPECIAL_TYPE_MAP: Record<string, SpecialType> = {
   'Sonic': 'sonic',
   'Chronos': 'chronos',
   'Guest 1337': 'guest1337',
+  'Gambler': 'gambler',
 };
 
-type SpecialType = 'normal' | 'sukuna' | 'luffy' | 'yi' | 'gojo' | 'mario' | 'guest1337' | 'chronos' | 'goku' | 'sonic';
+type SpecialType = 'normal' | 'sukuna' | 'luffy' | 'yi' | 'gojo' | 'mario' | 'guest1337' | 'chronos' | 'goku' | 'sonic' | 'gambler';
 
 interface CharacterStats {
   nome: string;
@@ -154,6 +158,7 @@ const WEAPON_SPRITES: Record<string, string> = {
   'Mario': heroMario,
   'Guest 1337': heroGuest1337,
   'Chronos': heroChronos,
+  'Gambler': heroGambler,
 };
 
 const CHARACTER_SPECIAL_TYPES: Record<string, SpecialType> = {
@@ -170,6 +175,7 @@ const CHARACTER_SPECIAL_TYPES: Record<string, SpecialType> = {
   'Mario': 'mario',
   'Guest 1337': 'guest1337',
   'Chronos': 'chronos',
+  'Gambler': 'gambler',
 };
 
 export default function SandboxMode({ onExit }: Props) {
@@ -1111,6 +1117,7 @@ export default function SandboxMode({ onExit }: Props) {
                         <SelectItem value="Chronos">Chronos (Transform)</SelectItem>
                         <SelectItem value="Goku">Goku (Kamehameha - 1 hit kill)</SelectItem>
                         <SelectItem value="Sonic">Sonic (Desvia de tudo)</SelectItem>
+                        <SelectItem value="Gambler">Gambler (Moeda da sorte)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1169,6 +1176,7 @@ export default function SandboxMode({ onExit }: Props) {
                         <SelectItem value="Goku">Goku</SelectItem>
                         <SelectItem value="Sonic">Sonic</SelectItem>
                         <SelectItem value="Chronos">Chronos</SelectItem>
+                        <SelectItem value="Gambler">Gambler</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
