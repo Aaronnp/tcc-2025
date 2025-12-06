@@ -13,6 +13,7 @@ import heroGoku from "@/assets/hero-goku.png";
 import heroSonic from "@/assets/hero-sonic.png";
 import heroSword from "@/assets/hero-sword.png";
 import heroGuest1337 from "@/assets/hero-guest1337.png";
+import heroGambler from "@/assets/hero-gambler.png";
 
 export interface SpecialCharacter {
   id: string;
@@ -22,7 +23,7 @@ export interface SpecialCharacter {
   requiredVictories: number;
   requiredHardcoreVictories?: number;
   inDevelopment?: boolean;
-  specialType: 'sukuna' | 'luffy' | 'yi' | 'gojo' | 'mario' | 'guest1337' | 'chronos' | 'goku' | 'sonic' | 'normal';
+  specialType: 'sukuna' | 'luffy' | 'yi' | 'gojo' | 'mario' | 'guest1337' | 'chronos' | 'goku' | 'sonic' | 'gambler' | 'normal';
 }
 
 export const SPECIAL_CHARACTERS: SpecialCharacter[] = [
@@ -57,6 +58,14 @@ export const SPECIAL_CHARACTERS: SpecialCharacter[] = [
     sprite: heroYi,
     requiredVictories: 5,
     specialType: 'yi'
+  },
+  {
+    id: 'gambler',
+    nome: 'Gambler',
+    descricao: 'Moeda da sorte! Acerte cara ou coroa para dobrar o dano, erre para dividir!',
+    sprite: heroGambler,
+    requiredVictories: 7,
+    specialType: 'gambler'
   },
   {
     id: 'luffy',
@@ -161,6 +170,12 @@ export interface ChronosState {
   transformUsed: boolean;
 }
 
+// Estado de habilidades do Gambler
+export interface GamblerState {
+  damageMultiplier: number; // Multiplicador de dano atual
+  coinFlipActive: boolean; // Se a tela de moeda está aberta
+}
+
 // Sprites do Luffy por Gear
 export const LUFFY_SPRITES: Record<number, string> = {
   0: heroLuffy,
@@ -182,6 +197,7 @@ export const getCharacterSprite = (specialType: string, luffyGear?: number): str
     case 'chronos': return heroChronos;
     case 'goku': return heroGoku;
     case 'sonic': return heroSonic;
+    case 'gambler': return heroGambler;
     default: return heroSword;
   }
 };
