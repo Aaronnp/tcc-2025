@@ -23,6 +23,7 @@ import {
   playSukunaClevar,
   playSukunaFuga,
   playSukunaSantuario,
+  playSukunaWorldSlash,
   playGojoAzul,
   playGojoVermelho,
   playGojoVazioRoxo,
@@ -38,7 +39,9 @@ import {
   playGuest1337BlockFail,
   playSonicDodge,
   playLuffyGear,
-  playNormalAttack
+  playNormalAttack,
+  playGamblerCoinWin,
+  playGamblerCoinLose
 } from "@/utils/soundEffects";
 import heroSword from "@/assets/hero-sword.png";
 import heroBow from "@/assets/hero-bow.png";
@@ -191,8 +194,8 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const [specialAttackEffect, setSpecialAttackEffect] = useState<string | null>(null);
   
   // Special character states
-  const [sukunaState, setSukunaState] = useState<SukunaState>({ desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0 });
-  const [luffyState, setLuffyState] = useState<LuffyState>({ currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false });
+  const [sukunaState, setSukunaState] = useState<SukunaState>({ desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0, worldSlashCooldown: 0 });
+  const [luffyState, setLuffyState] = useState<LuffyState>({ currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false, gear2Cooldown: 0, gear3Cooldown: 0, gear4Cooldown: 0, gear5Cooldown: 0 });
   const [yiState, setYiState] = useState<YiState>({ lives: 9, currentStep: 'counter', hasTalisman: false });
   const [gojoState, setGojoState] = useState<GojoState>({ azulCooldown: 0, vermelhoCooldown: 0, vazioRoxoCooldown: 0, infinitoCooldown: 0, infinitoTurnsActive: 0, vazioInfinitoUsed: false, enemyStunTurns: 0 });
   const [marioState, setMarioState] = useState<MarioState>({ mushroomCooldown: 0, mushroomTurnsActive: 0 });
@@ -292,6 +295,18 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
         clevarCooldown: Math.max(0, prev.clevarCooldown - 1),
         fugaCooldown: Math.max(0, prev.fugaCooldown - 1),
         santuarioCooldown: Math.max(0, prev.santuarioCooldown - 1),
+        worldSlashCooldown: Math.max(0, prev.worldSlashCooldown - 1),
+      }));
+    }
+    
+    // Luffy gear cooldowns
+    if (specialType === 'luffy') {
+      setLuffyState(prev => ({
+        ...prev,
+        gear2Cooldown: Math.max(0, prev.gear2Cooldown - 1),
+        gear3Cooldown: Math.max(0, prev.gear3Cooldown - 1),
+        gear4Cooldown: Math.max(0, prev.gear4Cooldown - 1),
+        gear5Cooldown: Math.max(0, prev.gear5Cooldown - 1),
       }));
     }
     
@@ -525,20 +540,27 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     }
   };
 
-  // Gambler coin flip
+  // Gambler coin flip - passa turno após usar
   const handleCoinFlip = (choice: 'cara' | 'coroa') => {
     const result = Math.random() < 0.5 ? 'cara' : 'coroa';
     const isWin = result === choice;
     
     if (isWin) {
+      playGamblerCoinWin();
       const newMultiplier = gamblerState.damageMultiplier * 2;
       setGamblerState({ damageMultiplier: newMultiplier, coinFlipActive: false });
       setBattleLog(prev => [...prev, `🎰 ${result.toUpperCase()}! ACERTOU! Dano agora: x${newMultiplier}`]);
     } else {
-      const newMultiplier = Math.floor(gamblerState.damageMultiplier / 2) || 1;
+      playGamblerCoinLose();
+      // Se multiplicador for 1, divide para 0.5 (arredondado para 1)
+      // Mas a mecânica é: divide por 2 sempre
+      const newMultiplier = Math.max(1, Math.floor(gamblerState.damageMultiplier / 2));
       setGamblerState({ damageMultiplier: newMultiplier, coinFlipActive: false });
       setBattleLog(prev => [...prev, `🎰 ${result.toUpperCase()}! ERROU! Dano agora: x${newMultiplier}`]);
     }
+    
+    // Passa o turno após jogar moeda
+    advanceTurn();
   };
 
   const attack = () => {
@@ -713,10 +735,10 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   };
 
   // Sukuna attacks
-  const sukunaAttack = (attackType: 'desmantelar' | 'clevar' | 'fuga' | 'santuario') => {
+  const sukunaAttack = (attackType: 'desmantelar' | 'clevar' | 'fuga' | 'santuario' | 'worldSlash') => {
     if (!currentEnemy || attackCooldown) return;
     
-    const cooldowns = { desmantelar: 2, clevar: 4, fuga: 5, santuario: 10 };
+    const cooldowns = { desmantelar: 2, clevar: 4, fuga: 5, santuario: 10, worldSlash: 8 };
     const stateKey = `${attackType}Cooldown` as keyof SukunaState;
     
     if (sukunaState[stateKey] > 0) {
@@ -732,17 +754,18 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     else if (attackType === 'clevar') playSukunaClevar();
     else if (attackType === 'fuga') playSukunaFuga();
     else if (attackType === 'santuario') playSukunaSantuario();
+    else if (attackType === 'worldSlash') playSukunaWorldSlash();
     
     // Trigger animation
-    const animations = { desmantelar: 'sukuna-dismantle', clevar: 'sukuna-cleave', fuga: 'sukuna-flame', santuario: 'sukuna-domain' };
+    const animations: Record<string, string> = { desmantelar: 'sukuna-dismantle', clevar: 'sukuna-cleave', fuga: 'sukuna-flame', santuario: 'sukuna-domain', worldSlash: 'sukuna-worldslash' };
     setSpecialAttackEffect(animations[attackType]);
-    setTimeout(() => setSpecialAttackEffect(null), 1500);
+    setTimeout(() => setSpecialAttackEffect(null), attackType === 'worldSlash' ? 2000 : 1500);
     
     const damage = calculateSukunaDamage(attackType);
-    const names = { desmantelar: 'DESMANTELAR', clevar: 'CLEVAR', fuga: 'FUGA', santuario: 'SANTUÁRIO MALEVOLENTE' };
+    const names: Record<string, string> = { desmantelar: 'DESMANTELAR', clevar: 'CLEVAR', fuga: 'FUGA', santuario: 'SANTUÁRIO MALEVOLENTE', worldSlash: 'WORLD CUTTING SLASH' };
     
     setSukunaState(prev => ({ ...prev, [stateKey]: cooldowns[attackType] }));
-    dealDamageToEnemy(damage, `🔥 ${names[attackType]}! ${damage} de dano!`);
+    dealDamageToEnemy(damage, `🔥 ${names[attackType]}! ${damage} de dano${attackType === 'worldSlash' ? ' GARANTIDO' : ''}!`);
     advanceTurn();
   };
 
@@ -838,8 +861,8 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       setGojoState(prev => ({ ...prev, infinitoCooldown: 5, infinitoTurnsActive: 3 }));
       setBattleLog(prev => [...prev, `♾️ INFINITO ATIVADO! Invulnerável por 3 turnos!`]);
     } else if (attackType === 'vazioInfinito') {
-      setGojoState(prev => ({ ...prev, vazioInfinitoUsed: true, enemyStunTurns: 2 }));
-      setBattleLog(prev => [...prev, `🌀 VAZIO INFINITO! Inimigo paralisado por 2 turnos!`]);
+      setGojoState(prev => ({ ...prev, vazioInfinitoUsed: true, enemyStunTurns: 4 }));
+      setBattleLog(prev => [...prev, `🌀 VAZIO INFINITO! Inimigo paralisado por 4 turnos!`]);
     } else {
       const damage = calculateGojoDamage(attackType);
       const names = { azul: 'AZUL', vermelho: 'VERMELHO', vazioRoxo: 'VAZIO ROXO' };
@@ -1074,23 +1097,44 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     return (
       <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 bg-black border-4 border-red-500 p-4 z-50">
         <h3 className="text-white text-lg font-bold mb-2">GEARS</h3>
-        {[2, 3, 4, 5].map(gear => (
-          <button
-            key={gear}
-            onClick={() => {
-              playLuffyGear(gear);
-              setLuffyState(prev => ({ ...prev, currentGear: gear as 0|2|3|4|5, gearTurnsActive: 0, gearMenuOpen: false }));
-              setBattleLog(prev => [...prev, `⚡ GEAR ${gear} ATIVADO!`]);
-            }}
-            disabled={luffyState.currentGear === gear}
-            className="block w-full text-left text-white border-2 border-white px-4 py-2 mb-2 hover:bg-white hover:text-black"
-            title={getLuffyGearCost(gear)}
-          >
-            Gear {gear} <span className="text-xs text-red-300">({getLuffyGearCost(gear)})</span>
-          </button>
-        ))}
+        {[2, 3, 4, 5].map(gear => {
+          const gearCooldownKey = `gear${gear}Cooldown` as keyof LuffyState;
+          const cooldown = luffyState[gearCooldownKey] as number;
+          return (
+            <button
+              key={gear}
+              onClick={() => {
+                playLuffyGear(gear);
+                setLuffyState(prev => ({ ...prev, currentGear: gear as 0|2|3|4|5, gearTurnsActive: 0, gearMenuOpen: false }));
+                setBattleLog(prev => [...prev, `⚡ GEAR ${gear} ATIVADO!`]);
+              }}
+              disabled={luffyState.currentGear === gear || cooldown > 0}
+              className="block w-full text-left text-white border-2 border-white px-4 py-2 mb-2 hover:bg-white hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
+              title={getLuffyGearCost(gear)}
+            >
+              Gear {gear} {cooldown > 0 ? `(CD: ${cooldown})` : ''} <span className="text-xs text-red-300">({getLuffyGearCost(gear)})</span>
+            </button>
+          );
+        })}
       </div>
     );
+  };
+
+  // Deactivate Gear with cooldown
+  const deactivateLuffyGear = () => {
+    const gear = luffyState.currentGear;
+    const cooldowns = { 2: 3, 3: 4, 4: 5, 5: 8 };
+    const cooldown = cooldowns[gear as 2|3|4|5] || 0;
+    const cooldownKey = `gear${gear}Cooldown` as keyof LuffyState;
+    
+    setLuffyState(prev => ({ 
+      ...prev, 
+      currentGear: 0, 
+      gearTurnsActive: 0, 
+      gearMenuOpen: false,
+      [cooldownKey]: cooldown
+    }));
+    setBattleLog(prev => [...prev, `Gear ${gear} desativado! Cooldown: ${cooldown} turnos.`]);
   };
 
   // Special Attack Buttons
@@ -1109,6 +1153,9 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
           </Button>
           <Button onClick={() => sukunaAttack('santuario')} disabled={attackCooldown || sukunaState.santuarioCooldown > 0} className="bg-red-800 hover:bg-red-700">
             Santuário {sukunaState.santuarioCooldown > 0 ? `(${sukunaState.santuarioCooldown})` : ''}
+          </Button>
+          <Button onClick={() => sukunaAttack('worldSlash')} disabled={attackCooldown || sukunaState.worldSlashCooldown > 0} className="bg-red-900 hover:bg-red-800 font-bold">
+            World Slash {sukunaState.worldSlashCooldown > 0 ? `(${sukunaState.worldSlashCooldown})` : '(250 DMG)'}
           </Button>
         </>
       );
@@ -1372,7 +1419,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
                       
                       {renderSpecialAttacks()}
                       {specialType === 'luffy' && (
-                        <Button onClick={() => luffyState.currentGear > 0 ? setLuffyState(prev => ({ ...prev, currentGear: 0, gearTurnsActive: 0 })) : setLuffyState(prev => ({ ...prev, gearMenuOpen: !prev.gearMenuOpen }))} className="bg-red-600 hover:bg-red-500">
+                        <Button onClick={() => luffyState.currentGear > 0 ? deactivateLuffyGear() : setLuffyState(prev => ({ ...prev, gearMenuOpen: !prev.gearMenuOpen }))} className="bg-red-600 hover:bg-red-500">
                           {luffyState.currentGear > 0 ? 'Desativar' : 'Gears'}
                         </Button>
                       )}

@@ -196,3 +196,32 @@ export const playNormalAttack = () => {
     { freq: 300, type: 'square', duration: 0.15, delay: 50, volume: 0.25 },
   ]);
 };
+
+// GAMBLER SOUNDS
+export const playGamblerCoinWin = () => {
+  playMultipleSounds([
+    { freq: 523, type: 'sine', duration: 0.1, delay: 0, volume: 0.4 },
+    { freq: 659, type: 'sine', duration: 0.1, delay: 80 },
+    { freq: 784, type: 'sine', duration: 0.15, delay: 160, volume: 0.45 },
+    { freq: 1047, type: 'sine', duration: 0.2, delay: 240, volume: 0.5 },
+  ]);
+};
+
+export const playGamblerCoinLose = () => {
+  playMultipleSounds([
+    { freq: 300, type: 'sawtooth', duration: 0.2, delay: 0, volume: 0.35 },
+    { freq: 200, type: 'sawtooth', duration: 0.3, delay: 100, volume: 0.3 },
+    { freq: 100, type: 'triangle', duration: 0.4, delay: 200, volume: 0.25 },
+  ]);
+};
+
+// SUKUNA WORLD CUTTING SLASH
+export const playSukunaWorldSlash = () => {
+  playMultipleSounds([
+    { freq: 100, type: 'sawtooth', duration: 0.3, delay: 0, volume: 0.6 },
+    { freq: 2000, type: 'sawtooth', duration: 0.2, delay: 100 },
+    { freq: 1500, type: 'sawtooth', duration: 0.3, delay: 200, volume: 0.5 },
+    { freq: 800, type: 'square', duration: 0.5, delay: 300, volume: 0.4 },
+    { freq: 400, type: 'triangle', duration: 0.8, delay: 500, volume: 0.3 },
+  ]);
+};
