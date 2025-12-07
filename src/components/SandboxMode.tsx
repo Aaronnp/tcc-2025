@@ -49,6 +49,7 @@ import {
   playSukunaClevar,
   playSukunaFuga,
   playSukunaSantuario,
+  playSukunaWorldSlash,
   playGojoAzul,
   playGojoVermelho,
   playGojoVazioRoxo,
@@ -64,7 +65,9 @@ import {
   playGuest1337BlockFail,
   playSonicDodge,
   playLuffyGear,
-  playNormalAttack
+  playNormalAttack,
+  playGamblerCoinWin,
+  playGamblerCoinLose
 } from "@/utils/soundEffects";
 
 import heroGambler from "@/assets/hero-gambler.png";
@@ -223,10 +226,10 @@ export default function SandboxMode({ onExit }: Props) {
 
   // Player Special character states
   const [sukunaState, setSukunaState] = useState<SukunaState>({
-    desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0
+    desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0, worldSlashCooldown: 0
   });
   const [luffyState, setLuffyState] = useState<LuffyState>({
-    currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false
+    currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false, gear2Cooldown: 0, gear3Cooldown: 0, gear4Cooldown: 0, gear5Cooldown: 0
   });
   const [yiState, setYiState] = useState<YiState>({
     lives: 9, currentStep: 'counter', hasTalisman: false
@@ -247,10 +250,10 @@ export default function SandboxMode({ onExit }: Props) {
   
   // Enemy Special character states (for when enemy has special type)
   const [enemySukunaState, setEnemySukunaState] = useState<SukunaState>({
-    desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0
+    desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0, worldSlashCooldown: 0
   });
   const [enemyLuffyState, setEnemyLuffyState] = useState<LuffyState>({
-    currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false
+    currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false, gear2Cooldown: 0, gear3Cooldown: 0, gear4Cooldown: 0, gear5Cooldown: 0
   });
   const [enemyYiState, setEnemyYiState] = useState<YiState>({
     lives: 9, currentStep: 'counter', hasTalisman: false
@@ -269,6 +272,13 @@ export default function SandboxMode({ onExit }: Props) {
     lastTurnState: null, canRewind: false, transformUsed: false
   });
   
+  // Gambler state
+  const [gamblerState, setGamblerState] = useState<GamblerState>({
+    damageMultiplier: 1, coinFlipActive: false
+  });
+  const [enemyGamblerState, setEnemyGamblerState] = useState<GamblerState>({
+    damageMultiplier: 1, coinFlipActive: false
+  });
   // Goku state
   const [isKamehamehaActive, setIsKamehamehaActive] = useState(false);
   const [isEnemyKamehamehaActive, setIsEnemyKamehamehaActive] = useState(false);
@@ -337,21 +347,23 @@ export default function SandboxMode({ onExit }: Props) {
   };
 
   const resetSpecialStates = () => {
-    setSukunaState({ desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0 });
-    setLuffyState({ currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false });
+    setSukunaState({ desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0, worldSlashCooldown: 0 });
+    setLuffyState({ currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false, gear2Cooldown: 0, gear3Cooldown: 0, gear4Cooldown: 0, gear5Cooldown: 0 });
     setYiState({ lives: 9, currentStep: 'counter', hasTalisman: false });
     setGojoState({ azulCooldown: 0, vermelhoCooldown: 0, vazioRoxoCooldown: 0, infinitoCooldown: 0, infinitoTurnsActive: 0, vazioInfinitoUsed: false, enemyStunTurns: 0 });
     setMarioState({ mushroomCooldown: 0, mushroomTurnsActive: 0 });
     setGuest1337State({ nextAttackDouble: false });
     setChronosState({ lastTurnState: null, canRewind: false, transformUsed: false });
+    setGamblerState({ damageMultiplier: 1, coinFlipActive: false });
     // Reset enemy states
-    setEnemySukunaState({ desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0 });
-    setEnemyLuffyState({ currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false });
+    setEnemySukunaState({ desmantelarCooldown: 0, clevarCooldown: 0, fugaCooldown: 0, santuarioCooldown: 0, worldSlashCooldown: 0 });
+    setEnemyLuffyState({ currentGear: 0, gearTurnsActive: 0, stunTurns: 0, gearMenuOpen: false, gear2Cooldown: 0, gear3Cooldown: 0, gear4Cooldown: 0, gear5Cooldown: 0 });
     setEnemyYiState({ lives: 9, currentStep: 'counter', hasTalisman: false });
     setEnemyGojoState({ azulCooldown: 0, vermelhoCooldown: 0, vazioRoxoCooldown: 0, infinitoCooldown: 0, infinitoTurnsActive: 0, vazioInfinitoUsed: false, enemyStunTurns: 0 });
     setEnemyMarioState({ mushroomCooldown: 0, mushroomTurnsActive: 0 });
     setEnemyGuest1337State({ nextAttackDouble: false });
     setEnemyChronosState({ lastTurnState: null, canRewind: false, transformUsed: false });
+    setEnemyGamblerState({ damageMultiplier: 1, coinFlipActive: false });
     setTurnCount(0);
   };
 
@@ -391,6 +403,7 @@ export default function SandboxMode({ onExit }: Props) {
       clevarCooldown: Math.max(0, prev.clevarCooldown - 1),
       fugaCooldown: Math.max(0, prev.fugaCooldown - 1),
       santuarioCooldown: Math.max(0, prev.santuarioCooldown - 1),
+      worldSlashCooldown: Math.max(0, prev.worldSlashCooldown - 1),
     }));
     setGojoState(prev => ({
       ...prev,
@@ -404,6 +417,42 @@ export default function SandboxMode({ onExit }: Props) {
     setMarioState(prev => ({
       mushroomCooldown: Math.max(0, prev.mushroomCooldown - 1),
       mushroomTurnsActive: Math.max(0, prev.mushroomTurnsActive - 1),
+    }));
+    setLuffyState(prev => ({
+      ...prev,
+      gear2Cooldown: Math.max(0, prev.gear2Cooldown - 1),
+      gear3Cooldown: Math.max(0, prev.gear3Cooldown - 1),
+      gear4Cooldown: Math.max(0, prev.gear4Cooldown - 1),
+      gear5Cooldown: Math.max(0, prev.gear5Cooldown - 1),
+    }));
+    
+    // Enemy cooldowns
+    setEnemySukunaState(prev => ({
+      desmantelarCooldown: Math.max(0, prev.desmantelarCooldown - 1),
+      clevarCooldown: Math.max(0, prev.clevarCooldown - 1),
+      fugaCooldown: Math.max(0, prev.fugaCooldown - 1),
+      santuarioCooldown: Math.max(0, prev.santuarioCooldown - 1),
+      worldSlashCooldown: Math.max(0, prev.worldSlashCooldown - 1),
+    }));
+    setEnemyGojoState(prev => ({
+      ...prev,
+      azulCooldown: Math.max(0, prev.azulCooldown - 1),
+      vermelhoCooldown: Math.max(0, prev.vermelhoCooldown - 1),
+      vazioRoxoCooldown: Math.max(0, prev.vazioRoxoCooldown - 1),
+      infinitoCooldown: Math.max(0, prev.infinitoCooldown - 1),
+      infinitoTurnsActive: Math.max(0, prev.infinitoTurnsActive - 1),
+      enemyStunTurns: Math.max(0, prev.enemyStunTurns - 1),
+    }));
+    setEnemyMarioState(prev => ({
+      mushroomCooldown: Math.max(0, prev.mushroomCooldown - 1),
+      mushroomTurnsActive: Math.max(0, prev.mushroomTurnsActive - 1),
+    }));
+    setEnemyLuffyState(prev => ({
+      ...prev,
+      gear2Cooldown: Math.max(0, prev.gear2Cooldown - 1),
+      gear3Cooldown: Math.max(0, prev.gear3Cooldown - 1),
+      gear4Cooldown: Math.max(0, prev.gear4Cooldown - 1),
+      gear5Cooldown: Math.max(0, prev.gear5Cooldown - 1),
     }));
   };
 
@@ -767,8 +816,19 @@ export default function SandboxMode({ onExit }: Props) {
   };
 
   const deactivateGear = () => {
-    setLuffyState(prev => ({ ...prev, currentGear: 0, gearTurnsActive: 0, gearMenuOpen: false }));
-    setBattleLog(prev => [...prev, `Gear desativado.`]);
+    const gear = luffyState.currentGear;
+    const cooldowns = { 2: 3, 3: 4, 4: 5, 5: 8 };
+    const cooldown = cooldowns[gear as 2|3|4|5] || 0;
+    const cooldownKey = `gear${gear}Cooldown` as keyof LuffyState;
+    
+    setLuffyState(prev => ({ 
+      ...prev, 
+      currentGear: 0, 
+      gearTurnsActive: 0, 
+      gearMenuOpen: false,
+      [cooldownKey]: cooldown
+    }));
+    setBattleLog(prev => [...prev, `Gear ${gear} desativado! Cooldown: ${cooldown} turnos.`]);
   };
 
   // Chronos abilities

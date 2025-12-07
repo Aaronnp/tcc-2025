@@ -124,6 +124,7 @@ export interface SukunaState {
   clevarCooldown: number; // 4 turnos
   fugaCooldown: number; // 5 turnos
   santuarioCooldown: number; // 10 turnos
+  worldSlashCooldown: number; // 8 turnos
 }
 
 // Estado de habilidades do Luffy
@@ -132,6 +133,10 @@ export interface LuffyState {
   gearTurnsActive: number;
   stunTurns: number; // Turnos sem fazer nada
   gearMenuOpen: boolean;
+  gear2Cooldown: number; // Cooldown após desativar
+  gear3Cooldown: number;
+  gear4Cooldown: number;
+  gear5Cooldown: number;
 }
 
 // Estado de habilidades do Yi
@@ -203,13 +208,14 @@ export const getCharacterSprite = (specialType: string, luffyGear?: number): str
 };
 
 // Calcula dano do Sukuna
-export const calculateSukunaDamage = (attack: 'desmantelar' | 'clevar' | 'fuga' | 'santuario'): number => {
+export const calculateSukunaDamage = (attack: 'desmantelar' | 'clevar' | 'fuga' | 'santuario' | 'worldSlash'): number => {
   const diceRoll = Math.floor(Math.random() * 6) + 1;
   switch (attack) {
     case 'desmantelar': return 30 + diceRoll;
     case 'clevar': return 50 + diceRoll;
     case 'fuga': return 35 + diceRoll;
     case 'santuario': return 250 + diceRoll;
+    case 'worldSlash': return 250; // Dano garantido fixo
   }
 };
 
