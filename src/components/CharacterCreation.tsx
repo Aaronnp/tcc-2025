@@ -380,7 +380,7 @@ export default function CharacterCreation({ onStartGame, existingCharacter, sele
                       checked={hardcore}
                       onChange={(e) => setHardcore(e.target.checked)}
                       className="w-5 h-5 cursor-pointer"
-                      disabled={!hardcoreUnlocked}
+                      disabled={hellModeActive}
                     />
                     <Label htmlFor="hardcore" className="text-2xl font-bold text-red-400 cursor-pointer animate-pulse">
                       💀 MODO IMPOSSÍVEL ATIVADO! 💀

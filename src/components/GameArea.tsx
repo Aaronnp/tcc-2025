@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { addVictory, setWins999 } from "@/utils/gameProgress";
@@ -205,6 +205,11 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const [gamblerState, setGamblerState] = useState<GamblerState>({ damageMultiplier: 1, coinFlipActive: false });
   const [coinChoice, setCoinChoice] = useState<'cara' | 'coroa' | null>(null);
   
+  // Music refs
+  const bgMusicRef = useRef<HTMLAudioElement | null>(null);
+  const bossMusicRef = useRef<HTMLAudioElement | null>(null);
+  const [currentBossIndex, setCurrentBossIndex] = useState(-1);
+  
   const specialType = character.specialType || 'normal';
   const isGokuMode = specialType === 'goku' || character.arma === 'Goku';
   const isSonicMode = specialType === 'sonic' || character.nome.toLowerCase().includes('sonic');
@@ -218,6 +223,54 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
   const modifiedBosses = isAftermatch
     ? bosses.map(b => ({ ...b, vida: b.vida * 3, forca: b.forca * 2, des: b.des * 2, cons: b.cons * 2 }))
     : bosses;
+
+  // Music system
+  const BOSS_MUSIC = ['/boss1-music.mp3', '/boss2-music.mp3', '/boss3-music.mp3', '/boss4-music.mp3'];
+  
+  const startBackgroundMusic = () => {
+    if (!bgMusicRef.current) {
+      bgMusicRef.current = new Audio('/normal-music.mp3');
+      bgMusicRef.current.loop = true;
+      bgMusicRef.current.volume = 0.3;
+    }
+    bgMusicRef.current.play().catch(() => {});
+  };
+  
+  const stopBackgroundMusic = () => {
+    if (bgMusicRef.current) {
+      bgMusicRef.current.pause();
+    }
+  };
+  
+  const startBossMusic = (bossIndex: number) => {
+    stopBackgroundMusic();
+    if (bossMusicRef.current) {
+      bossMusicRef.current.pause();
+    }
+    bossMusicRef.current = new Audio(BOSS_MUSIC[bossIndex] || BOSS_MUSIC[0]);
+    bossMusicRef.current.loop = true;
+    bossMusicRef.current.volume = 0.4;
+    bossMusicRef.current.play().catch(() => {});
+    setCurrentBossIndex(bossIndex);
+  };
+  
+  const stopBossMusic = () => {
+    if (bossMusicRef.current) {
+      bossMusicRef.current.pause();
+      bossMusicRef.current = null;
+    }
+    setCurrentBossIndex(-1);
+    startBackgroundMusic();
+  };
+  
+  // Start background music on mount
+  useEffect(() => {
+    startBackgroundMusic();
+    return () => {
+      if (bgMusicRef.current) bgMusicRef.current.pause();
+      if (bossMusicRef.current) bossMusicRef.current.pause();
+    };
+  }, []);
 
   useEffect(() => {
     generateRooms();
@@ -399,6 +452,8 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       setInBattle(true);
       setTurnCount(0);
       if (room.isBoss) {
+        const bossIndex = Math.floor((nextRoom + 1) / 25) - 1;
+        startBossMusic(bossIndex);
         setBattleLog([`🔥 BOSS APARECEU: ${room.enemy.nome}!`]);
         setStory(`Um chefe poderoso bloqueia seu caminho: ${room.enemy.nome}!`);
       } else {
@@ -496,6 +551,11 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     setInBattle(false);
     setCurrentRoom(currentRoom + 1);
     
+    // Stop boss music when boss is defeated
+    if (currentBossIndex >= 0) {
+      stopBossMusic();
+    }
+    
     // Remove mantra after boss
     if (mantraActive) {
       setInventory(prev => prev.filter(item => item.especial !== 'mantra_sombras'));
@@ -540,7 +600,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     }
   };
 
-  // Gambler coin flip - passa turno após usar
+  // Gambler coin flip - passa turno após usar e inimigo ataca
   const handleCoinFlip = (choice: 'cara' | 'coroa') => {
     const result = Math.random() < 0.5 ? 'cara' : 'coroa';
     const isWin = result === choice;
@@ -552,15 +612,28 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
       setBattleLog(prev => [...prev, `🎰 ${result.toUpperCase()}! ACERTOU! Dano agora: x${newMultiplier}`]);
     } else {
       playGamblerCoinLose();
-      // Se multiplicador for 1, divide para 0.5 (arredondado para 1)
-      // Mas a mecânica é: divide por 2 sempre
       const newMultiplier = Math.max(1, Math.floor(gamblerState.damageMultiplier / 2));
       setGamblerState({ damageMultiplier: newMultiplier, coinFlipActive: false });
       setBattleLog(prev => [...prev, `🎰 ${result.toUpperCase()}! ERROU! Dano agora: x${newMultiplier}`]);
     }
     
-    // Passa o turno após jogar moeda
+    // Passa o turno e inimigo ataca
     advanceTurn();
+    
+    // O inimigo ataca após o coin flip (Gambler sempre perde o turno)
+    if (currentEnemy) {
+      const enemyDamage = Math.max(1, currentEnemy.forca + Math.floor(Math.random() * 6));
+      const newPlayerHp = character.vida - enemyDamage;
+      setBattleLog(prev => [...prev, `💥 ${currentEnemy.nome} atacou causando ${enemyDamage} de dano!`]);
+      
+      if (newPlayerHp <= 0) {
+        handlePlayerDeath();
+      } else {
+        const updatedChar = { ...character, vida: newPlayerHp };
+        setCharacter(updatedChar);
+        onCharacterUpdate(updatedChar);
+      }
+    }
   };
 
   const attack = () => {
@@ -942,7 +1015,11 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
 
   // Chronos transform
   const chronosTransform = () => {
-    if (!currentEnemy || chronosState.transformUsed) return;
+    if (!currentEnemy) return;
+    if (chronosState.transformUsed) {
+      setBattleLog(prev => [...prev, `❌ Transform já foi usado nesta batalha!`]);
+      return;
+    }
     
     playChronosTransform();
     setSpecialAttackEffect('chronos-transform');

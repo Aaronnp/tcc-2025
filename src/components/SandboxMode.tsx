@@ -896,7 +896,12 @@ export default function SandboxMode({ onExit }: Props) {
   };
   
   const chronosTransform = () => {
-    if (chronosState.transformUsed || !selectedEnemy || attackCooldown) return;
+    if (chronosState.transformUsed || !selectedEnemy || attackCooldown) {
+      if (chronosState.transformUsed) {
+        setBattleLog(prev => [...prev, `❌ Transform já foi usado nesta batalha!`]);
+      }
+      return;
+    }
     
     setAttackCooldown(true);
     playChronosTransform();
