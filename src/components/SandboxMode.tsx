@@ -1608,38 +1608,34 @@ export default function SandboxMode({ onExit }: Props) {
                 </div>
               </div>
 
-              {/* Combat Buttons */}
+              {/* Combat Buttons - Hero Controls (Blue) */}
               {!battleEnded && (
-                <div className="flex flex-wrap justify-center gap-2 mb-4">
-                  {/* Normal Attack */}
-                  <Button onClick={handlePlayerAttack} disabled={!isPlayerTurn || attackCooldown} className="bg-blue-700 hover:bg-blue-600 text-white font-bold">
-                    ⚔️ ATACAR
-                  </Button>
-
-                  {/* =================== PLAYER TURN BUTTONS =================== */}
-                  {isPlayerTurn && (
-                    <>
+                <div className="space-y-4 mb-4">
+                  {/* Hero Section */}
+                  <div className="bg-blue-100 border-4 border-blue-600 rounded-sm p-4">
+                    <p className="text-blue-800 font-bold text-center mb-3 text-lg">🦸 HERÓI: {selectedCharacter.nome} {isPlayerTurn ? '(SEU TURNO)' : ''}</p>
+                    <div className="flex flex-wrap justify-center gap-2">
                       {/* Normal Attack */}
-                      <Button onClick={handlePlayerAttack} disabled={attackCooldown} className="bg-blue-700 hover:bg-blue-600 text-white font-bold">
+                      <Button onClick={handlePlayerAttack} disabled={!isPlayerTurn || attackCooldown} className="bg-blue-700 hover:bg-blue-600 text-white font-bold">
                         ⚔️ ATACAR
                       </Button>
 
                       {/* Sukuna Attacks */}
                       {selectedCharacter.specialType === 'sukuna' && (
                         <>
-                          <Button onClick={() => sukunaAttack('desmantelar')} disabled={attackCooldown || sukunaState.desmantelarCooldown > 0} className="bg-purple-700 hover:bg-purple-600 text-white font-bold">
+                          <Button onClick={() => sukunaAttack('desmantelar')} disabled={!isPlayerTurn || attackCooldown || sukunaState.desmantelarCooldown > 0} className="bg-purple-700 hover:bg-purple-600 text-white font-bold">
                             DESMANTELAR {sukunaState.desmantelarCooldown > 0 && `(${sukunaState.desmantelarCooldown})`}
                           </Button>
-                          <Button onClick={() => sukunaAttack('clevar')} disabled={attackCooldown || sukunaState.clevarCooldown > 0} className="bg-purple-700 hover:bg-purple-600 text-white font-bold">
+                          <Button onClick={() => sukunaAttack('clevar')} disabled={!isPlayerTurn || attackCooldown || sukunaState.clevarCooldown > 0} className="bg-purple-700 hover:bg-purple-600 text-white font-bold">
                             CLEVAR {sukunaState.clevarCooldown > 0 && `(${sukunaState.clevarCooldown})`}
                           </Button>
-                          <Button onClick={() => sukunaAttack('fuga')} disabled={attackCooldown || sukunaState.fugaCooldown > 0} className="bg-orange-700 hover:bg-orange-600 text-white font-bold">
+                          <Button onClick={() => sukunaAttack('fuga')} disabled={!isPlayerTurn || attackCooldown || sukunaState.fugaCooldown > 0} className="bg-orange-700 hover:bg-orange-600 text-white font-bold">
                             FUGA {sukunaState.fugaCooldown > 0 && `(${sukunaState.fugaCooldown})`}
                           </Button>
-                          <Button onClick={() => sukunaAttack('santuario')} disabled={attackCooldown || sukunaState.santuarioCooldown > 0} className="bg-red-900 hover:bg-red-800 text-white font-bold">
+                          <Button onClick={() => sukunaAttack('santuario')} disabled={!isPlayerTurn || attackCooldown || sukunaState.santuarioCooldown > 0} className="bg-red-900 hover:bg-red-800 text-white font-bold">
                             SANTUÁRIO {sukunaState.santuarioCooldown > 0 && `(${sukunaState.santuarioCooldown})`}
                           </Button>
-                          <Button onClick={sukunaWorldSlash} disabled={attackCooldown || sukunaState.worldSlashCooldown > 0} className="bg-pink-800 hover:bg-pink-700 text-white font-bold">
+                          <Button onClick={sukunaWorldSlash} disabled={!isPlayerTurn || attackCooldown || sukunaState.worldSlashCooldown > 0} className="bg-pink-800 hover:bg-pink-700 text-white font-bold">
                             🌍 WORLD SLASH {sukunaState.worldSlashCooldown > 0 && `(${sukunaState.worldSlashCooldown})`}
                           </Button>
                         </>
@@ -1649,17 +1645,17 @@ export default function SandboxMode({ onExit }: Props) {
                       {selectedCharacter.specialType === 'yi' && (
                         <>
                           {yiState.currentStep === 'counter' && (
-                            <Button onClick={yiCounter} disabled={attackCooldown} className="bg-yellow-700 hover:bg-yellow-600 text-white font-bold">
+                            <Button onClick={yiCounter} disabled={!isPlayerTurn || attackCooldown} className="bg-yellow-700 hover:bg-yellow-600 text-white font-bold">
                               🛡️ COUNTER
                             </Button>
                           )}
                           {yiState.currentStep === 'insert' && (
-                            <Button onClick={yiInsert} disabled={attackCooldown} className="bg-green-700 hover:bg-green-600 text-white font-bold">
+                            <Button onClick={yiInsert} disabled={!isPlayerTurn || attackCooldown} className="bg-green-700 hover:bg-green-600 text-white font-bold">
                               📜 INSERT
                             </Button>
                           )}
                           {yiState.currentStep === 'explode' && (
-                            <Button onClick={yiExplode} disabled={attackCooldown} className="bg-red-700 hover:bg-red-600 text-white font-bold">
+                            <Button onClick={yiExplode} disabled={!isPlayerTurn || attackCooldown} className="bg-red-700 hover:bg-red-600 text-white font-bold">
                               💥 EXPLODE!
                             </Button>
                           )}
@@ -1669,19 +1665,19 @@ export default function SandboxMode({ onExit }: Props) {
                       {/* Gojo Attacks */}
                       {selectedCharacter.specialType === 'gojo' && (
                         <>
-                          <Button onClick={() => gojoAttack('azul')} disabled={attackCooldown || gojoState.azulCooldown > 0} className="bg-blue-500 hover:bg-blue-400 text-white font-bold">
+                          <Button onClick={() => gojoAttack('azul')} disabled={!isPlayerTurn || attackCooldown || gojoState.azulCooldown > 0} className="bg-blue-500 hover:bg-blue-400 text-white font-bold">
                             AZUL {gojoState.azulCooldown > 0 && `(${gojoState.azulCooldown})`}
                           </Button>
-                          <Button onClick={() => gojoAttack('vermelho')} disabled={attackCooldown || gojoState.vermelhoCooldown > 0} className="bg-red-500 hover:bg-red-400 text-white font-bold">
+                          <Button onClick={() => gojoAttack('vermelho')} disabled={!isPlayerTurn || attackCooldown || gojoState.vermelhoCooldown > 0} className="bg-red-500 hover:bg-red-400 text-white font-bold">
                             VERMELHO {gojoState.vermelhoCooldown > 0 && `(${gojoState.vermelhoCooldown})`}
                           </Button>
-                          <Button onClick={() => gojoAttack('vazioRoxo')} disabled={attackCooldown || gojoState.vazioRoxoCooldown > 0} className="bg-purple-500 hover:bg-purple-400 text-white font-bold">
+                          <Button onClick={() => gojoAttack('vazioRoxo')} disabled={!isPlayerTurn || attackCooldown || gojoState.vazioRoxoCooldown > 0} className="bg-purple-500 hover:bg-purple-400 text-white font-bold">
                             VAZIO ROXO {gojoState.vazioRoxoCooldown > 0 && `(${gojoState.vazioRoxoCooldown})`}
                           </Button>
-                          <Button onClick={() => gojoAttack('infinito')} disabled={attackCooldown || gojoState.infinitoCooldown > 0} className="bg-cyan-500 hover:bg-cyan-400 text-white font-bold">
+                          <Button onClick={() => gojoAttack('infinito')} disabled={!isPlayerTurn || attackCooldown || gojoState.infinitoCooldown > 0} className="bg-cyan-500 hover:bg-cyan-400 text-white font-bold">
                             ♾️ INFINITO {gojoState.infinitoCooldown > 0 && `(${gojoState.infinitoCooldown})`}
                           </Button>
-                          <Button onClick={() => gojoAttack('vazioInfinito')} disabled={attackCooldown || gojoState.vazioInfinitoUsed} className="bg-indigo-900 hover:bg-indigo-800 text-white font-bold">
+                          <Button onClick={() => gojoAttack('vazioInfinito')} disabled={!isPlayerTurn || attackCooldown || gojoState.vazioInfinitoUsed} className="bg-indigo-900 hover:bg-indigo-800 text-white font-bold">
                             🌀 VAZIO INFINITO {gojoState.vazioInfinitoUsed && '(USADO)'}
                           </Button>
                         </>
@@ -1689,14 +1685,14 @@ export default function SandboxMode({ onExit }: Props) {
 
                       {/* Mario Mushroom */}
                       {selectedCharacter.specialType === 'mario' && (
-                        <Button onClick={marioMushroom} disabled={marioState.mushroomCooldown > 0} className="bg-red-600 hover:bg-red-500 text-white font-bold">
+                        <Button onClick={marioMushroom} disabled={!isPlayerTurn || marioState.mushroomCooldown > 0} className="bg-red-600 hover:bg-red-500 text-white font-bold">
                           🍄 COGUMELO {marioState.mushroomCooldown > 0 && `(${marioState.mushroomCooldown})`}
                         </Button>
                       )}
 
                       {/* Guest 1337 Block */}
                       {selectedCharacter.specialType === 'guest1337' && (
-                        <Button onClick={guest1337Block} disabled={attackCooldown} className="bg-gray-700 hover:bg-gray-600 text-white font-bold">
+                        <Button onClick={guest1337Block} disabled={!isPlayerTurn || attackCooldown} className="bg-gray-700 hover:bg-gray-600 text-white font-bold">
                           🛡️ BLOQUEAR
                         </Button>
                       )}
@@ -1706,7 +1702,7 @@ export default function SandboxMode({ onExit }: Props) {
                         <>
                           {luffyState.currentGear === 0 ? (
                             <div className="relative">
-                              <Button onClick={() => setLuffyState(prev => ({ ...prev, gearMenuOpen: !prev.gearMenuOpen }))} className="bg-orange-600 hover:bg-orange-500 text-white font-bold">
+                              <Button onClick={() => setLuffyState(prev => ({ ...prev, gearMenuOpen: !prev.gearMenuOpen }))} disabled={!isPlayerTurn} className="bg-orange-600 hover:bg-orange-500 text-white font-bold">
                                 ⚙️ GEARS
                               </Button>
                               {luffyState.gearMenuOpen && (
@@ -1727,7 +1723,7 @@ export default function SandboxMode({ onExit }: Props) {
                               )}
                             </div>
                           ) : (
-                            <Button onClick={deactivateGear} className="bg-gray-600 hover:bg-gray-500 text-white font-bold">
+                            <Button onClick={deactivateGear} disabled={!isPlayerTurn} className="bg-gray-600 hover:bg-gray-500 text-white font-bold">
                               DESATIVAR GEAR
                             </Button>
                           )}
@@ -1737,10 +1733,10 @@ export default function SandboxMode({ onExit }: Props) {
                       {/* Chronos Abilities */}
                       {selectedCharacter.specialType === 'chronos' && (
                         <>
-                          <Button onClick={chronosRewind} disabled={!chronosState.canRewind} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold">
+                          <Button onClick={chronosRewind} disabled={!isPlayerTurn || !chronosState.canRewind} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold">
                             ⏪ VOLTAR TURNO {!chronosState.canRewind && '(N/A)'}
                           </Button>
-                          <Button onClick={chronosTransform} disabled={attackCooldown || chronosState.transformUsed} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold">
+                          <Button onClick={chronosTransform} disabled={!isPlayerTurn || attackCooldown || chronosState.transformUsed} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold">
                             👶 TRANSFORM {chronosState.transformUsed && '(USADO)'}
                           </Button>
                         </>
@@ -1748,186 +1744,180 @@ export default function SandboxMode({ onExit }: Props) {
 
                       {/* Goku Kamehameha */}
                       {selectedCharacter.specialType === 'goku' && (
-                        <Button onClick={gokuKamehameha} disabled={attackCooldown || isKamehamehaActive} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold">
+                        <Button onClick={gokuKamehameha} disabled={!isPlayerTurn || attackCooldown || isKamehamehaActive} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold">
                           🔵 KAMEHAMEHA
                         </Button>
                       )}
 
-                      {/* Gambler Coin */}
+                      {/* Gambler Coin - Single Button */}
                       {selectedCharacter.specialType === 'gambler' && (
-                        <>
-                          {!gamblerState.coinFlipActive ? (
-                            <Button onClick={() => setGamblerState(prev => ({ ...prev, coinFlipActive: true }))} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold">
-                              🪙 MOEDA (x{gamblerState.damageMultiplier})
+                        !gamblerState.coinFlipActive ? (
+                          <Button onClick={() => setGamblerState(prev => ({ ...prev, coinFlipActive: true }))} disabled={!isPlayerTurn} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold">
+                            🪙 MOEDA (x{gamblerState.damageMultiplier})
+                          </Button>
+                        ) : (
+                          <>
+                            <Button onClick={() => handleCoinFlip('cara')} disabled={!isPlayerTurn || attackCooldown} className="bg-green-600 hover:bg-green-500 text-white font-bold text-xl px-6">
+                              🪙 CARA
                             </Button>
-                          ) : (
-                            <>
-                              <Button onClick={() => handleCoinFlip('cara')} disabled={attackCooldown} className="bg-green-600 hover:bg-green-500 text-white font-bold text-xl px-6">
-                                🪙 CARA
-                              </Button>
-                              <Button onClick={() => handleCoinFlip('coroa')} disabled={attackCooldown} className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xl px-6">
-                                👑 COROA
-                              </Button>
-                            </>
+                            <Button onClick={() => handleCoinFlip('coroa')} disabled={!isPlayerTurn || attackCooldown} className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xl px-6">
+                              👑 COROA
+                            </Button>
+                          </>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Enemy Section (Red/Inverted Colors) */}
+                  <div className="bg-red-100 border-4 border-red-600 rounded-sm p-4">
+                    <p className="text-red-800 font-bold text-center mb-3 text-lg">👹 INIMIGO: {selectedEnemy.nome} {!isPlayerTurn ? '(SEU TURNO)' : ''}</p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {/* Enemy Basic Attack */}
+                      <Button onClick={enemyBasicAttack} disabled={isPlayerTurn || attackCooldown} className="bg-red-700 hover:bg-red-600 text-white font-bold">
+                        ⚔️ ATACAR
+                      </Button>
+
+                      {/* Enemy Sukuna */}
+                      {selectedEnemy.specialType === 'sukuna' && (
+                        <>
+                          <Button onClick={() => enemySukunaAttack('desmantelar')} disabled={isPlayerTurn || attackCooldown || enemySukunaState.desmantelarCooldown > 0} className="bg-purple-900 hover:bg-purple-800 text-white font-bold">
+                            DESMANTELAR {enemySukunaState.desmantelarCooldown > 0 && `(${enemySukunaState.desmantelarCooldown})`}
+                          </Button>
+                          <Button onClick={() => enemySukunaAttack('clevar')} disabled={isPlayerTurn || attackCooldown || enemySukunaState.clevarCooldown > 0} className="bg-purple-900 hover:bg-purple-800 text-white font-bold">
+                            CLEVAR {enemySukunaState.clevarCooldown > 0 && `(${enemySukunaState.clevarCooldown})`}
+                          </Button>
+                          <Button onClick={() => enemySukunaAttack('fuga')} disabled={isPlayerTurn || attackCooldown || enemySukunaState.fugaCooldown > 0} className="bg-orange-900 hover:bg-orange-800 text-white font-bold">
+                            FUGA {enemySukunaState.fugaCooldown > 0 && `(${enemySukunaState.fugaCooldown})`}
+                          </Button>
+                          <Button onClick={() => enemySukunaAttack('santuario')} disabled={isPlayerTurn || attackCooldown || enemySukunaState.santuarioCooldown > 0} className="bg-red-950 hover:bg-red-900 text-white font-bold">
+                            SANTUÁRIO {enemySukunaState.santuarioCooldown > 0 && `(${enemySukunaState.santuarioCooldown})`}
+                          </Button>
+                          <Button onClick={enemySukunaWorldSlash} disabled={isPlayerTurn || attackCooldown || enemySukunaState.worldSlashCooldown > 0} className="bg-pink-900 hover:bg-pink-800 text-white font-bold">
+                            🌍 WORLD SLASH {enemySukunaState.worldSlashCooldown > 0 && `(${enemySukunaState.worldSlashCooldown})`}
+                          </Button>
+                        </>
+                      )}
+
+                      {/* Enemy Yi */}
+                      {selectedEnemy.specialType === 'yi' && (
+                        <>
+                          {enemyYiState.currentStep === 'counter' && (
+                            <Button onClick={enemyYiCounter} disabled={isPlayerTurn || attackCooldown} className="bg-yellow-800 hover:bg-yellow-700 text-white font-bold">
+                              🛡️ COUNTER
+                            </Button>
+                          )}
+                          {enemyYiState.currentStep === 'insert' && (
+                            <Button onClick={enemyYiInsert} disabled={isPlayerTurn || attackCooldown} className="bg-green-800 hover:bg-green-700 text-white font-bold">
+                              📜 INSERT
+                            </Button>
+                          )}
+                          {enemyYiState.currentStep === 'explode' && (
+                            <Button onClick={enemyYiExplode} disabled={isPlayerTurn || attackCooldown} className="bg-red-800 hover:bg-red-700 text-white font-bold">
+                              💥 EXPLODE!
+                            </Button>
                           )}
                         </>
                       )}
-                    </>
-                  )}
 
-                  {/* =================== ENEMY TURN BUTTONS =================== */}
-                  {!isPlayerTurn && (
-                    <div className="w-full">
-                      <p className="text-red-600 font-bold text-center mb-2">⚔️ TURNO DO INIMIGO - Controle as ações do {selectedEnemy.nome}:</p>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {/* Enemy Basic Attack */}
-                        <Button onClick={enemyBasicAttack} disabled={attackCooldown} className="bg-red-700 hover:bg-red-600 text-white font-bold">
-                          ⚔️ ATACAR
+                      {/* Enemy Gojo */}
+                      {selectedEnemy.specialType === 'gojo' && (
+                        <>
+                          <Button onClick={() => enemyGojoAttack('azul')} disabled={isPlayerTurn || attackCooldown || enemyGojoState.azulCooldown > 0} className="bg-blue-700 hover:bg-blue-600 text-white font-bold">
+                            AZUL {enemyGojoState.azulCooldown > 0 && `(${enemyGojoState.azulCooldown})`}
+                          </Button>
+                          <Button onClick={() => enemyGojoAttack('vermelho')} disabled={isPlayerTurn || attackCooldown || enemyGojoState.vermelhoCooldown > 0} className="bg-red-700 hover:bg-red-600 text-white font-bold">
+                            VERMELHO {enemyGojoState.vermelhoCooldown > 0 && `(${enemyGojoState.vermelhoCooldown})`}
+                          </Button>
+                          <Button onClick={() => enemyGojoAttack('vazioRoxo')} disabled={isPlayerTurn || attackCooldown || enemyGojoState.vazioRoxoCooldown > 0} className="bg-purple-700 hover:bg-purple-600 text-white font-bold">
+                            VAZIO ROXO {enemyGojoState.vazioRoxoCooldown > 0 && `(${enemyGojoState.vazioRoxoCooldown})`}
+                          </Button>
+                          <Button onClick={() => enemyGojoAttack('infinito')} disabled={isPlayerTurn || attackCooldown || enemyGojoState.infinitoCooldown > 0} className="bg-cyan-700 hover:bg-cyan-600 text-white font-bold">
+                            ♾️ INFINITO {enemyGojoState.infinitoCooldown > 0 && `(${enemyGojoState.infinitoCooldown})`}
+                          </Button>
+                          <Button onClick={() => enemyGojoAttack('vazioInfinito')} disabled={isPlayerTurn || attackCooldown || enemyGojoState.vazioInfinitoUsed} className="bg-indigo-950 hover:bg-indigo-900 text-white font-bold">
+                            🌀 VAZIO INFINITO {enemyGojoState.vazioInfinitoUsed && '(USADO)'}
+                          </Button>
+                        </>
+                      )}
+
+                      {/* Enemy Mario */}
+                      {selectedEnemy.specialType === 'mario' && (
+                        <Button onClick={enemyMarioMushroom} disabled={isPlayerTurn || enemyMarioState.mushroomCooldown > 0} className="bg-red-800 hover:bg-red-700 text-white font-bold">
+                          🍄 COGUMELO {enemyMarioState.mushroomCooldown > 0 && `(${enemyMarioState.mushroomCooldown})`}
                         </Button>
+                      )}
 
-                        {/* Enemy Sukuna */}
-                        {selectedEnemy.specialType === 'sukuna' && (
-                          <>
-                            <Button onClick={() => enemySukunaAttack('desmantelar')} disabled={attackCooldown || enemySukunaState.desmantelarCooldown > 0} className="bg-purple-700 hover:bg-purple-600 text-white font-bold">
-                              DESMANTELAR {enemySukunaState.desmantelarCooldown > 0 && `(${enemySukunaState.desmantelarCooldown})`}
-                            </Button>
-                            <Button onClick={() => enemySukunaAttack('clevar')} disabled={attackCooldown || enemySukunaState.clevarCooldown > 0} className="bg-purple-700 hover:bg-purple-600 text-white font-bold">
-                              CLEVAR {enemySukunaState.clevarCooldown > 0 && `(${enemySukunaState.clevarCooldown})`}
-                            </Button>
-                            <Button onClick={() => enemySukunaAttack('fuga')} disabled={attackCooldown || enemySukunaState.fugaCooldown > 0} className="bg-orange-700 hover:bg-orange-600 text-white font-bold">
-                              FUGA {enemySukunaState.fugaCooldown > 0 && `(${enemySukunaState.fugaCooldown})`}
-                            </Button>
-                            <Button onClick={() => enemySukunaAttack('santuario')} disabled={attackCooldown || enemySukunaState.santuarioCooldown > 0} className="bg-red-900 hover:bg-red-800 text-white font-bold">
-                              SANTUÁRIO {enemySukunaState.santuarioCooldown > 0 && `(${enemySukunaState.santuarioCooldown})`}
-                            </Button>
-                            <Button onClick={enemySukunaWorldSlash} disabled={attackCooldown || enemySukunaState.worldSlashCooldown > 0} className="bg-pink-800 hover:bg-pink-700 text-white font-bold">
-                              🌍 WORLD SLASH {enemySukunaState.worldSlashCooldown > 0 && `(${enemySukunaState.worldSlashCooldown})`}
-                            </Button>
-                          </>
-                        )}
+                      {/* Enemy Guest 1337 */}
+                      {selectedEnemy.specialType === 'guest1337' && (
+                        <Button onClick={enemyGuest1337Block} disabled={isPlayerTurn || attackCooldown} className="bg-gray-800 hover:bg-gray-700 text-white font-bold">
+                          🛡️ BLOQUEAR
+                        </Button>
+                      )}
 
-                        {/* Enemy Yi */}
-                        {selectedEnemy.specialType === 'yi' && (
-                          <>
-                            {enemyYiState.currentStep === 'counter' && (
-                              <Button onClick={enemyYiCounter} disabled={attackCooldown} className="bg-yellow-700 hover:bg-yellow-600 text-white font-bold">
-                                🛡️ COUNTER
+                      {/* Enemy Luffy Gears */}
+                      {selectedEnemy.specialType === 'luffy' && (
+                        <>
+                          {enemyLuffyState.currentGear === 0 ? (
+                            <div className="relative">
+                              <Button onClick={() => setEnemyLuffyState(prev => ({ ...prev, gearMenuOpen: !prev.gearMenuOpen }))} disabled={isPlayerTurn} className="bg-orange-800 hover:bg-orange-700 text-white font-bold">
+                                ⚙️ GEARS
                               </Button>
-                            )}
-                            {enemyYiState.currentStep === 'insert' && (
-                              <Button onClick={enemyYiInsert} disabled={attackCooldown} className="bg-green-700 hover:bg-green-600 text-white font-bold">
-                                📜 INSERT
-                              </Button>
-                            )}
-                            {enemyYiState.currentStep === 'explode' && (
-                              <Button onClick={enemyYiExplode} disabled={attackCooldown} className="bg-red-700 hover:bg-red-600 text-white font-bold">
-                                💥 EXPLODE!
-                              </Button>
-                            )}
-                          </>
-                        )}
+                              {enemyLuffyState.gearMenuOpen && (
+                                <div className="absolute bottom-full mb-2 left-0 bg-background border-2 border-border rounded-sm p-2 space-y-1 z-50 min-w-[200px]">
+                                  <Button onClick={() => enemyActivateGear(2)} disabled={enemyLuffyState.gear2Cooldown > 0} className="w-full bg-orange-700 text-white text-sm">Gear 2 {enemyLuffyState.gear2Cooldown > 0 && `(${enemyLuffyState.gear2Cooldown})`}</Button>
+                                  <Button onClick={() => enemyActivateGear(3)} disabled={enemyLuffyState.gear3Cooldown > 0} className="w-full bg-orange-800 text-white text-sm">Gear 3 {enemyLuffyState.gear3Cooldown > 0 && `(${enemyLuffyState.gear3Cooldown})`}</Button>
+                                  <Button onClick={() => enemyActivateGear(4)} disabled={enemyLuffyState.gear4Cooldown > 0} className="w-full bg-orange-900 text-white text-sm">Gear 4 {enemyLuffyState.gear4Cooldown > 0 && `(${enemyLuffyState.gear4Cooldown})`}</Button>
+                                  <Button onClick={() => enemyActivateGear(5)} disabled={enemyLuffyState.gear5Cooldown > 0} className="w-full bg-red-800 text-white text-sm">Gear 5 {enemyLuffyState.gear5Cooldown > 0 && `(${enemyLuffyState.gear5Cooldown})`}</Button>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <Button onClick={enemyDeactivateGear} disabled={isPlayerTurn} className="bg-gray-800 hover:bg-gray-700 text-white font-bold">
+                              DESATIVAR GEAR
+                            </Button>
+                          )}
+                        </>
+                      )}
 
-                        {/* Enemy Gojo */}
-                        {selectedEnemy.specialType === 'gojo' && (
-                          <>
-                            <Button onClick={() => enemyGojoAttack('azul')} disabled={attackCooldown || enemyGojoState.azulCooldown > 0} className="bg-blue-500 hover:bg-blue-400 text-white font-bold">
-                              AZUL {enemyGojoState.azulCooldown > 0 && `(${enemyGojoState.azulCooldown})`}
-                            </Button>
-                            <Button onClick={() => enemyGojoAttack('vermelho')} disabled={attackCooldown || enemyGojoState.vermelhoCooldown > 0} className="bg-red-500 hover:bg-red-400 text-white font-bold">
-                              VERMELHO {enemyGojoState.vermelhoCooldown > 0 && `(${enemyGojoState.vermelhoCooldown})`}
-                            </Button>
-                            <Button onClick={() => enemyGojoAttack('vazioRoxo')} disabled={attackCooldown || enemyGojoState.vazioRoxoCooldown > 0} className="bg-purple-500 hover:bg-purple-400 text-white font-bold">
-                              VAZIO ROXO {enemyGojoState.vazioRoxoCooldown > 0 && `(${enemyGojoState.vazioRoxoCooldown})`}
-                            </Button>
-                            <Button onClick={() => enemyGojoAttack('infinito')} disabled={attackCooldown || enemyGojoState.infinitoCooldown > 0} className="bg-cyan-500 hover:bg-cyan-400 text-white font-bold">
-                              ♾️ INFINITO {enemyGojoState.infinitoCooldown > 0 && `(${enemyGojoState.infinitoCooldown})`}
-                            </Button>
-                            <Button onClick={() => enemyGojoAttack('vazioInfinito')} disabled={attackCooldown || enemyGojoState.vazioInfinitoUsed} className="bg-indigo-900 hover:bg-indigo-800 text-white font-bold">
-                              🌀 VAZIO INFINITO {enemyGojoState.vazioInfinitoUsed && '(USADO)'}
-                            </Button>
-                          </>
-                        )}
-
-                        {/* Enemy Mario */}
-                        {selectedEnemy.specialType === 'mario' && (
-                          <Button onClick={enemyMarioMushroom} disabled={enemyMarioState.mushroomCooldown > 0} className="bg-red-600 hover:bg-red-500 text-white font-bold">
-                            🍄 COGUMELO {enemyMarioState.mushroomCooldown > 0 && `(${enemyMarioState.mushroomCooldown})`}
+                      {/* Enemy Chronos */}
+                      {selectedEnemy.specialType === 'chronos' && (
+                        <>
+                          <Button onClick={enemyChronosRewind} disabled={isPlayerTurn || !enemyChronosState.canRewind} className="bg-cyan-800 hover:bg-cyan-700 text-white font-bold">
+                            ⏪ VOLTAR TURNO {!enemyChronosState.canRewind && '(N/A)'}
                           </Button>
-                        )}
-
-                        {/* Enemy Guest 1337 */}
-                        {selectedEnemy.specialType === 'guest1337' && (
-                          <Button onClick={enemyGuest1337Block} disabled={attackCooldown} className="bg-gray-700 hover:bg-gray-600 text-white font-bold">
-                            🛡️ BLOQUEAR
+                          <Button onClick={enemyChronosTransform} disabled={isPlayerTurn || attackCooldown || enemyChronosState.transformUsed} className="bg-yellow-800 hover:bg-yellow-700 text-white font-bold">
+                            👶 TRANSFORM {enemyChronosState.transformUsed && '(USADO)'}
                           </Button>
-                        )}
+                        </>
+                      )}
 
-                        {/* Enemy Luffy Gears */}
-                        {selectedEnemy.specialType === 'luffy' && (
-                          <>
-                            {enemyLuffyState.currentGear === 0 ? (
-                              <div className="relative">
-                                <Button onClick={() => setEnemyLuffyState(prev => ({ ...prev, gearMenuOpen: !prev.gearMenuOpen }))} className="bg-orange-600 hover:bg-orange-500 text-white font-bold">
-                                  ⚙️ GEARS
-                                </Button>
-                                {enemyLuffyState.gearMenuOpen && (
-                                  <div className="absolute bottom-full mb-2 left-0 bg-background border-2 border-border rounded-sm p-2 space-y-1 z-50 min-w-[200px]">
-                                    <Button onClick={() => enemyActivateGear(2)} disabled={enemyLuffyState.gear2Cooldown > 0} className="w-full bg-orange-500 text-white text-sm">Gear 2 {enemyLuffyState.gear2Cooldown > 0 && `(${enemyLuffyState.gear2Cooldown})`}</Button>
-                                    <Button onClick={() => enemyActivateGear(3)} disabled={enemyLuffyState.gear3Cooldown > 0} className="w-full bg-orange-600 text-white text-sm">Gear 3 {enemyLuffyState.gear3Cooldown > 0 && `(${enemyLuffyState.gear3Cooldown})`}</Button>
-                                    <Button onClick={() => enemyActivateGear(4)} disabled={enemyLuffyState.gear4Cooldown > 0} className="w-full bg-orange-700 text-white text-sm">Gear 4 {enemyLuffyState.gear4Cooldown > 0 && `(${enemyLuffyState.gear4Cooldown})`}</Button>
-                                    <Button onClick={() => enemyActivateGear(5)} disabled={enemyLuffyState.gear5Cooldown > 0} className="w-full bg-red-600 text-white text-sm">Gear 5 {enemyLuffyState.gear5Cooldown > 0 && `(${enemyLuffyState.gear5Cooldown})`}</Button>
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <Button onClick={enemyDeactivateGear} className="bg-gray-600 hover:bg-gray-500 text-white font-bold">
-                                DESATIVAR GEAR
-                              </Button>
-                            )}
-                          </>
-                        )}
+                      {/* Enemy Goku */}
+                      {selectedEnemy.specialType === 'goku' && (
+                        <Button onClick={enemyGokuKamehameha} disabled={isPlayerTurn || attackCooldown || isEnemyKamehamehaActive} className="bg-cyan-800 hover:bg-cyan-700 text-white font-bold">
+                          🔵 KAMEHAMEHA
+                        </Button>
+                      )}
 
-                        {/* Enemy Chronos */}
-                        {selectedEnemy.specialType === 'chronos' && (
+                      {/* Enemy Gambler - Single Button */}
+                      {selectedEnemy.specialType === 'gambler' && (
+                        !enemyGamblerState.coinFlipActive ? (
+                          <Button onClick={() => setEnemyGamblerState(prev => ({ ...prev, coinFlipActive: true }))} disabled={isPlayerTurn} className="bg-yellow-800 hover:bg-yellow-700 text-white font-bold">
+                            🪙 MOEDA (x{enemyGamblerState.damageMultiplier})
+                          </Button>
+                        ) : (
                           <>
-                            <Button onClick={enemyChronosRewind} disabled={!enemyChronosState.canRewind} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold">
-                              ⏪ VOLTAR TURNO {!enemyChronosState.canRewind && '(N/A)'}
+                            <Button onClick={() => enemyCoinFlip('cara')} disabled={isPlayerTurn || attackCooldown} className="bg-green-800 hover:bg-green-700 text-white font-bold text-xl px-6">
+                              🪙 CARA
                             </Button>
-                            <Button onClick={enemyChronosTransform} disabled={attackCooldown || enemyChronosState.transformUsed} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold">
-                              👶 TRANSFORM {enemyChronosState.transformUsed && '(USADO)'}
+                            <Button onClick={() => enemyCoinFlip('coroa')} disabled={isPlayerTurn || attackCooldown} className="bg-blue-800 hover:bg-blue-700 text-white font-bold text-xl px-6">
+                              👑 COROA
                             </Button>
                           </>
-                        )}
-
-                        {/* Enemy Goku */}
-                        {selectedEnemy.specialType === 'goku' && (
-                          <Button onClick={enemyGokuKamehameha} disabled={attackCooldown || isEnemyKamehamehaActive} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold">
-                            🔵 KAMEHAMEHA
-                          </Button>
-                        )}
-
-                        {/* Enemy Gambler */}
-                        {selectedEnemy.specialType === 'gambler' && (
-                          <>
-                            {!enemyGamblerState.coinFlipActive ? (
-                              <Button onClick={() => setEnemyGamblerState(prev => ({ ...prev, coinFlipActive: true }))} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold">
-                                🪙 MOEDA (x{enemyGamblerState.damageMultiplier})
-                              </Button>
-                            ) : (
-                              <>
-                                <Button onClick={() => enemyCoinFlip('cara')} disabled={attackCooldown} className="bg-green-600 hover:bg-green-500 text-white font-bold text-xl px-6">
-                                  🪙 CARA
-                                </Button>
-                                <Button onClick={() => enemyCoinFlip('coroa')} disabled={attackCooldown} className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xl px-6">
-                                  👑 COROA
-                                </Button>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
+                        )
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
 
