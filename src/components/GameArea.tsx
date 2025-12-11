@@ -231,7 +231,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     if (!bgMusicRef.current) {
       bgMusicRef.current = new Audio('/normal-music.mp3');
       bgMusicRef.current.loop = true;
-      bgMusicRef.current.volume = 0.3;
+      bgMusicRef.current.volume = 0.75;
     }
     bgMusicRef.current.play().catch(() => {});
   };
@@ -1298,11 +1298,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
     }
     
     if (specialType === 'gambler') {
-      return (
-        <Button onClick={() => setGamblerState(prev => ({ ...prev, coinFlipActive: true }))} className="bg-yellow-600 hover:bg-yellow-500">
-          🎰 MOEDA (x{gamblerState.damageMultiplier})
-        </Button>
-      );
+      return null;
     }
     
     return null;
@@ -1342,7 +1338,7 @@ export default function GameArea({ character: initialCharacter, onCharacterUpdat
           )}
           {character.pointsToSpend > 0 && (
             <Button onClick={() => onReturnToSheet(0)} className={`mt-4 w-full ${isInfernoMode ? 'bg-red-900 hover:bg-red-800' : 'bg-accent hover:bg-accent/90'}`}>
-              Voltar à Ficha
+              Voltar à Ficha <span className="opacity-70 ml-1">(você voltará para o início)</span>
             </Button>
           )}
         </div>
