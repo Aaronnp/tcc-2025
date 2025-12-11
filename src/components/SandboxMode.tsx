@@ -459,6 +459,40 @@ export default function SandboxMode({ onExit }: Props) {
   };
 
   const dealDamageToEnemy = (damage: number, message: string) => {
+    // Check enemy special defenses first
+    if (selectedEnemy?.specialType === 'sonic') {
+      playSonicDodge();
+      setBattleLog(prev => [...prev, `💨 ${selectedEnemy.nome} desviou com velocidade extrema!`]);
+      return;
+    }
+    
+    if (selectedEnemy?.specialType === 'gojo' && enemyGojoState.infinitoTurnsActive > 0) {
+      setBattleLog(prev => [...prev, `♾️ ${selectedEnemy.nome} Infinito bloqueou o ataque!`]);
+      return;
+    }
+    
+    // Luffy Gear 5: 80% dodge, NOT 100%
+    if (selectedEnemy?.specialType === 'luffy' && enemyLuffyState.currentGear === 5) {
+      if (Math.random() < 0.8) {
+        setBattleLog(prev => [...prev, `💨 ${selectedEnemy.nome} desviou com Gear 5!`]);
+        return;
+      }
+    }
+    
+    // Enemy Yi life system
+    if (selectedEnemy?.specialType === 'yi') {
+      setEnemyYiState(prev => {
+        const newLives = prev.lives - 1;
+        setBattleLog(log => [...log, `💀 ${selectedEnemy.nome} perdeu uma vida! Vidas: ${newLives}`]);
+        if (newLives <= 0) {
+          setEnemyHp(0);
+          setBattleLog(log => [...log, `🎉 ${selectedCharacter?.nome} venceu a batalha! 🎉`]);
+        }
+        return { ...prev, lives: newLives };
+      });
+      return;
+    }
+    
     setEnemyHp(prev => {
       const newHp = Math.max(0, prev - damage);
       setBattleLog(log => [...log, message]);
@@ -475,11 +509,12 @@ export default function SandboxMode({ onExit }: Props) {
       setBattleLog(prev => [...prev, `😵 Você está atordoado! ${luffyState.stunTurns} turnos restantes.`]);
       setLuffyState(prev => ({ ...prev, stunTurns: prev.stunTurns - 1 }));
       advanceTurn();
-      handleEnemyTurn();
+      setIsPlayerTurn(false);
       return;
     }
     
     setAttackCooldown(true);
+    playNormalAttack();
     
     const attackStat = selectedCharacter.tipoDano === 'forca' 
       ? selectedCharacter.forca 
@@ -497,7 +532,13 @@ export default function SandboxMode({ onExit }: Props) {
       marioDamageBonus = 15;
     }
     
-    let baseDamage = Math.max(1, attackStat + bonusForca + selectedCharacter.inteligencia + Math.floor(Math.random() * 6) + 1 + marioDamageBonus);
+    // Apply Gambler multiplier
+    let gamblerMultiplier = 1;
+    if (selectedCharacter.specialType === 'gambler') {
+      gamblerMultiplier = gamblerState.damageMultiplier;
+    }
+    
+    let baseDamage = Math.max(1, (attackStat + bonusForca + selectedCharacter.inteligencia + Math.floor(Math.random() * 6) + 1 + marioDamageBonus) * gamblerMultiplier);
     
     // Guest 1337 double damage
     if (selectedCharacter.specialType === 'guest1337' && guest1337State.nextAttackDouble) {
@@ -505,9 +546,6 @@ export default function SandboxMode({ onExit }: Props) {
       setGuest1337State({ nextAttackDouble: false });
       setBattleLog(prev => [...prev, `💥 DANO DOBRADO!`]);
     }
-    
-    // Sonic always dodges - applied when enemy attacks
-    // Sonic cannot be hit at all
     
     // Enemy dodge check
     let enemyDodged = false;
@@ -523,9 +561,13 @@ export default function SandboxMode({ onExit }: Props) {
     
     advanceTurn();
     
+    // Switch to enemy turn (manual control)
     setTimeout(() => {
-      handleEnemyTurn();
-    }, 1500);
+      setAttackCooldown(false);
+      if (enemyHp > 0 && playerHp > 0) {
+        setIsPlayerTurn(false);
+      }
+    }, 500);
   };
 
   const handleEnemyTurn = () => {
@@ -947,6 +989,23 @@ export default function SandboxMode({ onExit }: Props) {
   const enemyBasicAttack = () => {
     if (!selectedEnemy || !selectedCharacter || isPlayerTurn || attackCooldown || playerHp <= 0) return;
     
+    // Check for enemy stun from player Gojo
+    if (gojoState.enemyStunTurns > 0) {
+      setBattleLog(prev => [...prev, `😵 ${selectedEnemy.nome} está paralisado pelo Vazio Infinito! ${gojoState.enemyStunTurns} turnos restantes.`]);
+      advanceTurn();
+      setIsPlayerTurn(true);
+      return;
+    }
+    
+    // Check for enemy Luffy stun
+    if (selectedEnemy.specialType === 'luffy' && enemyLuffyState.stunTurns > 0) {
+      setBattleLog(prev => [...prev, `😵 ${selectedEnemy.nome} está atordoado! ${enemyLuffyState.stunTurns} turnos restantes.`]);
+      setEnemyLuffyState(prev => ({ ...prev, stunTurns: prev.stunTurns - 1 }));
+      advanceTurn();
+      setIsPlayerTurn(true);
+      return;
+    }
+    
     setAttackCooldown(true);
     playNormalAttack();
     
@@ -966,7 +1025,13 @@ export default function SandboxMode({ onExit }: Props) {
       bonusForca = getLuffyGearBonus(enemyLuffyState.currentGear).forca;
     }
     
-    let damage = Math.max(1, attackStat + bonusForca + selectedEnemy.inteligencia + Math.floor(Math.random() * 6) + 1 + marioDamageBonus);
+    // Apply enemy Gambler multiplier
+    let gamblerMultiplier = 1;
+    if (selectedEnemy.specialType === 'gambler') {
+      gamblerMultiplier = enemyGamblerState.damageMultiplier;
+    }
+    
+    let damage = Math.max(1, (attackStat + bonusForca + selectedEnemy.inteligencia + Math.floor(Math.random() * 6) + 1 + marioDamageBonus) * gamblerMultiplier);
     
     // Enemy Guest 1337 double damage
     if (selectedEnemy.specialType === 'guest1337' && enemyGuest1337State.nextAttackDouble) {
@@ -976,6 +1041,35 @@ export default function SandboxMode({ onExit }: Props) {
     }
     
     dealDamageToPlayer(damage, `💥 ${selectedEnemy.nome} atacou causando ${damage} de dano!`);
+    
+    // Enemy Luffy gear costs after attack
+    if (selectedEnemy.specialType === 'luffy' && enemyLuffyState.currentGear > 0) {
+      if (enemyLuffyState.currentGear === 2) {
+        setEnemyHp(prev => Math.max(0, prev - 3));
+        setBattleLog(prev => [...prev, `🔥 ${selectedEnemy.nome} Gear 2 drenou 3 de vida!`]);
+      } else if (enemyLuffyState.currentGear === 3) {
+        setEnemyHp(prev => Math.max(0, prev - 5));
+        setBattleLog(prev => [...prev, `🔥 ${selectedEnemy.nome} Gear 3 drenou 5 de vida!`]);
+      } else if (enemyLuffyState.currentGear === 4) {
+        setEnemyLuffyState(prev => {
+          const newTurns = prev.gearTurnsActive + 1;
+          if (newTurns >= 3) {
+            setBattleLog(log => [...log, `😵 ${selectedEnemy.nome} Gear 4 acabou! 2 turnos sem ação!`]);
+            return { ...prev, currentGear: 0, gearTurnsActive: 0, stunTurns: 2 };
+          }
+          return { ...prev, gearTurnsActive: newTurns };
+        });
+      } else if (enemyLuffyState.currentGear === 5) {
+        setEnemyLuffyState(prev => {
+          const newTurns = prev.gearTurnsActive + 1;
+          if (newTurns >= 3 && playerHp > 0) {
+            setBattleLog(log => [...log, `😵 ${selectedEnemy.nome} Gear 5 acabou! 10 turnos sem ação!`]);
+            return { ...prev, currentGear: 0, gearTurnsActive: 0, stunTurns: 10 };
+          }
+          return { ...prev, gearTurnsActive: newTurns };
+        });
+      }
+    }
     
     advanceTurn();
     setIsPlayerTurn(true);
